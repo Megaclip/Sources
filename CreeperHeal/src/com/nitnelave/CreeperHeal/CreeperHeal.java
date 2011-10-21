@@ -48,11 +48,14 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import org.bukkit.util.config.Configuration;
+import org.yi.acru.bukkit.Lockette.Lockette;
 
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 
 import com.garbagemule.MobArena.MobArenaHandler;
+import com.griefcraft.lwc.LWC;
+import com.griefcraft.lwc.LWCPlugin;
 
 
 
@@ -86,6 +89,9 @@ public class CreeperHeal extends JavaPlugin {
 	boolean drop_not_replaced = true;
 	int drop_chance = 100;
 
+	LWC lwc = null;
+
+
 	Map<String, WorldConfig> world_config = Collections.synchronizedMap(new HashMap<String, WorldConfig>());
 	Map<Block, Byte> torch_data = Collections.synchronizedMap(new HashMap<Block, Byte>());
 	Map<Entity, DateLoc> tnt_location = Collections.synchronizedMap(new HashMap<Entity, DateLoc>());
@@ -97,6 +103,25 @@ public class CreeperHeal extends JavaPlugin {
 
 	private boolean opEnforce = true;
 	private boolean cracked = false;
+	private boolean lockette = false;
+	private boolean replaceChests = false;
+	private boolean replaceProtected = false;
+	private HashMap<Location, BlockState> toReplace = new HashMap<Location,BlockState>();
+	private String chestProtection = "no";
+	private enum BlockFaces {
+		UP(BlockFace.UP),
+		DOWN(BlockFace.DOWN),
+		SOUTH(BlockFace.SOUTH),
+		EAST(BlockFace.EAST),
+		WEST(BlockFace.WEST),
+		NORTH(BlockFace.NORTH);
+
+		public BlockFace face;
+		private BlockFaces(BlockFace bface){
+			this.face = bface;
+		}
+
+	}
 
 
 	/**
@@ -263,6 +288,17 @@ public class CreeperHeal extends JavaPlugin {
 			log.warning("[CreeperHeal] Impossible to schedule the replace-burnt task. Burnt blocks replacement will not work");
 
 
+		Plugin lwcPlugin = getServer().getPluginManager().getPlugin("LWC");
+		if(lwcPlugin != null) {
+			lwc = ((LWCPlugin) lwcPlugin).getLWC();
+			log_info("Successfully hooked in LWC",0);
+		}
+
+		Plugin lockettePlugin = getServer().getPluginManager().getPlugin("Lockette");
+		if(lockettePlugin!=null){
+			lockette  = true;
+			log_info("Successfully hooked in Lockette",0);
+		}
 
 
 		log.info("[CreeperHeal] version "+pdfFile.getVersion()+" by nitnelave is enabled");
@@ -286,7 +322,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 		if(args.length != 0) {        //if it's just /ch, display help
-			
+
 			WorldConfig current_world = world_config.get(args[args.length - 1]);   
 
 			if(current_world == null) {
@@ -547,6 +583,13 @@ public class CreeperHeal extends JavaPlugin {
 				if(block.getState() instanceof ContainerBlock) {        //save the inventory
 					chest_contents.put(block.getLocation(), ((ContainerBlock) block.getState()).getInventory().getContents().clone());
 					((ContainerBlock) block.getState()).getInventory().clear();
+					if(replaceChests || (replaceProtected && isProtected(block))){
+						if(toReplace.get(block.getLocation()) == null){
+							toReplace.put(block.getLocation(),block.getState());
+							if(lockette)
+								scanForProtectedNeighbors(block);
+						}
+					}
 				}
 				else if(block.getState() instanceof Sign) {                //save the text
 					sign_text.put(block.getLocation(), ((Sign)block.getState()).getLines());
@@ -648,6 +691,18 @@ public class CreeperHeal extends JavaPlugin {
 				}
 			}
 
+
+
+			getServer().getScheduler().scheduleSyncDelayedTask(this,new Runnable()
+
+			{
+
+				public void run() {
+
+					replaceProtected();
+
+				}}, 2);
+
 		}
 
 
@@ -667,6 +722,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	}
+
 
 
 	protected void addTrap() {
@@ -969,7 +1025,7 @@ public class CreeperHeal extends JavaPlugin {
 
 				}
 
-				);
+						);
 
 				called_set_torch = true;
 
@@ -1082,7 +1138,7 @@ public class CreeperHeal extends JavaPlugin {
 
 	private void loadConfig(){            //reads the config
 		log.info("Loading config");
-		
+
 		getConfiguration().load();
 
 		interval = configInt("wait-before-heal", 60);        //tries to read the value directly from the config
@@ -1116,13 +1172,35 @@ public class CreeperHeal extends JavaPlugin {
 		opEnforce = configBoolean("op-permissions", true);
 
 		cracked = configBoolean("crack-bricks", false);
+		
+		try{
+			tmp_str = getConfiguration().getString("chest-protection", "no").trim().toLowerCase();
+		}
+		catch (Exception e) {
+			log.warning("[CreeperHeal] Wrong value for chest protection field. Defaulting to no.");
+			log_info(e.getLocalizedMessage(), 1);
+			tmp_str = "no";
+		}
+		
+		if(!tmp_str.equalsIgnoreCase("no") && !tmp_str.equalsIgnoreCase("lwc") && !tmp_str.equalsIgnoreCase("all") && !tmp_str.equalsIgnoreCase("lockette"))
+			log.warning("[CreeperHeal] Wrong value for chest protection field. Defaulting to no.");
+		else {
+			replaceChests = replaceProtected = false;
+			
+			if(tmp_str.equals("all"))
+				replaceChests = true;
+			else if(tmp_str.equals("lwc") || tmp_str.equals("lockette"))
+				replaceProtected = true;
+		}
+			
+		
 
 		world_config.clear();
 		for(World w : getServer().getWorlds()) {
 			String name = w.getName();
 			loadWorldConfig(name);
 		}
-		
+
 
 	}
 
@@ -1196,6 +1274,7 @@ public class CreeperHeal extends JavaPlugin {
 		config.setProperty("log-level", log_level);
 		config.setProperty("op-permissions", opEnforce);
 		config.setProperty("crack-bricks", cracked);
+		config.setProperty("chest-protection", chestProtection );
 
 
 		for(WorldConfig w : world_config.values()) {
@@ -1251,7 +1330,7 @@ public class CreeperHeal extends JavaPlugin {
 
 		}, 200
 
-		);
+				);
 
 	}
 
@@ -1445,9 +1524,9 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	private WorldConfig loadWorldConfig(String name) {
-		
+
 		WorldConfig returnValue = world_config.get(name);
-		
+
 		if(returnValue == null){
 			log_info("Loading world: "+name, 1);
 			boolean creeper = configBoolean(name + ".Creepers", true);
@@ -1463,7 +1542,7 @@ public class CreeperHeal extends JavaPlugin {
 			boolean replaceAbove = configBoolean(name + ".replace-above-only", false);
 
 			int replaceLimit = configInt(name + ".replace-limit", 64);
-			
+
 			boolean enderman = configBoolean(name + ".block-enderman", false);
 
 			String restrict_blocks;
@@ -1525,13 +1604,54 @@ public class CreeperHeal extends JavaPlugin {
 				restrict_list.add(new BlockId(0));
 
 			}
-			
+
 			returnValue = new WorldConfig(name, creeper, tnt, ghast, fire, magical, replace_tnt, restrict_blocks, restrict_list, replaceAbove, replaceLimit, enderman);
-			
+
 			world_config.put(name, returnValue);
 			return returnValue;
 		}
 
 		return returnValue;
 	}
+
+
+
+	private boolean isProtected(Block block){
+		if(lwc!=null){
+			return (lwc.findProtection(block)!=null);
+		}
+		else if(lockette){
+			return Lockette.isProtected(block);
+		}
+		else return false;
+	}
+
+
+	protected void replaceProtected() {
+		Iterator<Location> iter = toReplace.keySet().iterator();
+		while(iter.hasNext()){
+			Location loc = iter.next();
+			block_state_replace(toReplace.get(loc));
+		}
+
+		toReplace.clear();
+
+	}
+
+
+	private void scanForProtectedNeighbors(Block block) {
+		List<Block> list = new ArrayList<Block>();
+		list.add(block);
+		for(int i = 0; i<list.size(); i++){
+			for(BlockFaces bf : BlockFaces.values()){
+				Block block_rel = block.getRelative(bf.face);
+				if(isProtected(block_rel) && !list.contains(block_rel)){
+					toReplace.put(block_rel.getLocation(), block_rel.getState());
+					list.add(block_rel);
+				}
+			}
+		}
+
+	}
+
 }
