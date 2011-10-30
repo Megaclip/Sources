@@ -5,6 +5,7 @@ package com.nitnelave.CreeperHeal;
 import org.bukkit.World;
 import org.bukkit.event.entity.EndermanPickupEvent;
 import org.bukkit.event.entity.EntityListener;
+import org.bukkit.event.painting.PaintingBreakEvent;
 
 
 public class EnderListener extends EntityListener{
@@ -29,6 +30,10 @@ public class EnderListener extends EntityListener{
 		return plugin.loadWorldConfig(w);
 	}
 
-
+	public void onPaintingBreak(PaintingBreakEvent event)
+	{
+		if(event.getCause() == PaintingBreakEvent.RemoveCause.ENTITY)
+			plugin.record_painting(event.getPainting());
+	}
 
 }

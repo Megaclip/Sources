@@ -7,8 +7,8 @@ import org.bukkit.Location;
 
 
 public class DateLoc {
-    Date date;
-    Location location;
+    private Date date;
+    private Location location;
 
     public DateLoc(Date time, Location loc) {
         date = time;
@@ -22,5 +22,6 @@ public class DateLoc {
     public Location getLocation() {
         return location;
     }
+
 
 }
