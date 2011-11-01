@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
+import org.bukkit.event.block.BlockPhysicsEvent;
 
 public class TNTBreakListener extends BlockListener {
 	
@@ -25,6 +26,13 @@ public class TNTBreakListener extends BlockListener {
 				}
 			}
 		}
+	}
+	
+	@Override
+	public void onBlockPhysics(BlockPhysicsEvent event)
+	{
+		if(plugin.preventUpdate.containsKey(event.getBlock().getState()))
+			event.setCancelled(true);
 	}
 
 }

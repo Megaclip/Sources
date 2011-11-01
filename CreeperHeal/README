@@ -22,15 +22,15 @@ CONFIGURATION
 wait-before-heal-explosions : 
 (in seconds) Delay after the explosion before the damage gets repaired (or starts getting repaired for block per block).
 
+wait-before-heal-fire : 
+(in seconds) Delay after a block is destroyed by fire (burnt), before it gets replaced.
+
 replacement-method : 
 (block-per-block or all-at-once) Whether the blocks destroyed by the explosions should all pop back at once, or one at a time.
 Cannot be changed on the go, you have to reload or restart the server to take the changes in account.
 
 block-per-block-interval : 
 (in ticks (1/20th of a second)) Delay between each block replacement (ie. set it to 10 for 2 blocks per second)
-
-wait-before-heal-fire : 
-(in seconds) Delay after a block is destroyed by fire (burnt), before it gets replaced.
 
 overwrite-blocks :
 (true or false) Whether block replacement overwrites existing terrain.
@@ -57,7 +57,9 @@ op-have-all-permissions :
 crack-destroyed-bricks : 
 (true or false) Whether bricks destroyed should be replaced as cracked ones.
 
-
+chest-protection: 
+(no, lwc, lockette or all) no: nothing particular. lwc: blocks protected by lwc will not blow up. lockette: blocks protected by lockette will not blow up
+all: no chest (or anything with an inventory) will blow up 
 
 
 Per world :
