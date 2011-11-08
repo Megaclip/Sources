@@ -314,7 +314,7 @@ public class CreeperHeal extends JavaPlugin {
 		pm.registerEvent(Event.Type.ENDERMAN_PICKUP, ender_listener, Event.Priority.High, this);
 
 		pm.registerEvent(Event.Type.ENTITY_DAMAGE, listener, Event.Priority.High, this);
-		
+
 		pm.registerEvent(Event.Type.BLOCK_PHYSICS, block_listener, Event.Priority.Normal, this);
 
 		/*
@@ -342,7 +342,7 @@ public class CreeperHeal extends JavaPlugin {
 			}}, 200, 600) == -1)
 			log.warning("[CreeperHeal] Impossible to schedule the replace-burnt task. Burnt blocks replacement will not work");
 
-		
+
 
 		/*
 		 * Connection with the other plugins
@@ -377,7 +377,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	protected void cleanRailsMap()
-    {
+	{
 		Date now = new Date();
 		Iterator<Date> iter = preventUpdate.values().iterator();
 		while(iter.hasNext())
@@ -386,7 +386,7 @@ public class CreeperHeal extends JavaPlugin {
 			if(date.before(new Date(now.getTime() + 100*block_interval)))
 				iter.remove();
 		}
-    }
+	}
 
 
 
@@ -646,7 +646,7 @@ public class CreeperHeal extends JavaPlugin {
 
 	public void recordBlocks(EntityExplodeEvent event, WorldConfig world) {        //record the list of blocks of an explosion, from bottom to top
 		Date now = new Date();
-		while(map.get(now)!=null)
+		while(map.containsKey(now))
 			now = new Date(now.getTime() + 1);
 		event.setYield(0);
 		List<Block> list = event.blockList();            //the list declared by the explosion
@@ -820,7 +820,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	}
-	
+
 	private void replacePaintings(Date time)
 	{
 		Iterator<Painting> iter = paintings.keySet().iterator();
@@ -1131,31 +1131,31 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	private void checkForAscendingRails(BlockState blockState)
-    {
-	    BlockFace[] cardinals = {BlockFace.EAST, BlockFace.WEST, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.UP};
-	    Block block = blockState.getBlock();
-	    for(BlockFace face : cardinals)
-	    {
-	    	Block tmp_block = block.getRelative(face);
-	    	if(tmp_block.getState() instanceof Rails)
-	    	{
-	    		byte data = tmp_block.getData();
-	    		if(data>1 && data < 6)
-	    		{
-	    			BlockFace facing = null;
-	    			if(data == 2)
-	    				facing = BlockFace.EAST;
-	    			else if(data == 3)
-	    				facing = BlockFace.WEST;
-	    			else if(data == 4)
-	    				facing = BlockFace.NORTH;
-	    			else if(data == 5)
-	    				facing = BlockFace.SOUTH;
-	    			if(tmp_block.getRelative(facing).getType() == Material.AIR)
-	    				preventUpdate.put(tmp_block.getState(), new Date());
-	    		}
-	    	}
-	    }
+	{
+		BlockFace[] cardinals = {BlockFace.EAST, BlockFace.WEST, BlockFace.NORTH, BlockFace.SOUTH, BlockFace.UP};
+		Block block = blockState.getBlock();
+		for(BlockFace face : cardinals)
+		{
+			Block tmp_block = block.getRelative(face);
+			if(tmp_block.getState() instanceof Rails)
+			{
+				byte data = tmp_block.getData();
+				if(data>1 && data < 6)
+				{
+					BlockFace facing = null;
+					if(data == 2)
+						facing = BlockFace.EAST;
+					else if(data == 3)
+						facing = BlockFace.WEST;
+					else if(data == 4)
+						facing = BlockFace.NORTH;
+					else if(data == 5)
+						facing = BlockFace.SOUTH;
+					if(tmp_block.getRelative(facing).getType() == Material.AIR)
+						preventUpdate.put(tmp_block.getState(), new Date());
+				}
+			}
+		}
 	}
 
 
@@ -1259,9 +1259,16 @@ public class CreeperHeal extends JavaPlugin {
 		if(blockState instanceof ContainerBlock)        //in case of a chest, drop the contents on the ground as well
 		{
 			ItemStack[] stacks = chest_contents.get(loc);
-			for(ItemStack stack : stacks)
-				w.dropItemNaturally(loc, stack);
-					chest_contents.remove(loc);
+			if(chest_contents!=null)
+			{
+				for(ItemStack stack : stacks)
+				{
+					if(stack !=null)
+						w.dropItemNaturally(loc, stack);
+				}
+				chest_contents.remove(loc);
+			}
+
 		}
 		else if(blockState instanceof Sign)         //for the rest, just delete the reference
 			sign_text.remove(loc);

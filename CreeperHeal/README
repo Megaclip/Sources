@@ -45,7 +45,7 @@ drop-destroyed-blocks :
 drop-destroyed-blocks-chance : 
 (0 - 100) If setting above is true, chance that the block resource drops.
 
-teleport-when buried : 
+teleport-when-buried : 
 (true or false) If a player is caught in an explosion being healed and is suffocating, teleport him above to safety.
 
 verbose-level : 
