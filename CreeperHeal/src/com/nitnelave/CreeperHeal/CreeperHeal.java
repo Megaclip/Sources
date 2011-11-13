@@ -73,7 +73,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	private final static ArrayList<Integer> blocks_physics = new ArrayList<Integer>(Arrays.asList(12,13,88));                        //sand gravel, soulsand fall
-	protected final static ArrayList<Integer> blocks_last = new ArrayList<Integer>(Arrays.asList(6,18,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,81,83,93,94,96,115));  //blocks dependent on others. to put in last
+	protected final static ArrayList<Integer> blocks_last = new ArrayList<Integer>(Arrays.asList(6,18,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,81,83,93,94,96,104,105,106,115));  //blocks dependent on others. to put in last
 	private final static ArrayList<Integer> blocks_dependent_down = new ArrayList<Integer>(Arrays.asList(6,26,27,28,31,32,37,38,39,40,55,59,63,64,66,70,71,72,78,93,94,104,105,115));
 	private final static ArrayList<Integer> blocks_non_solid = new ArrayList<Integer>(Arrays.asList(0,6,8,9,26,27,28,30,31,37,38,39,40, 50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96));   //the player can breathe
 	private final static String[] world_config_nodes = {"Creepers", "TNT", "Ghast", "Magical", "Fire", "restrict-blocks", "restrict-list", "replace-all-tnt", "replace-above-limit-only", "replace-limit", "block-enderman-pickup"}; //list of properties for the world config
@@ -197,7 +197,7 @@ public class CreeperHeal extends JavaPlugin {
 	 * Listeners
 	 */
 
-	private CreeperListener listener = new CreeperListener(this);                        //listener for explosions
+	protected CreeperListener listener = new CreeperListener(this);                        //listener for explosions
 	private FireListener fire_listener = new FireListener(this);                        //listener for fire
 	private TNTBreakListener block_listener = new TNTBreakListener(this);				//catches the block break to prevent trap destruction
 	private EnderListener ender_listener = new EnderListener(this);						//catches the enderman pickup event to cancel it
@@ -218,6 +218,7 @@ public class CreeperHeal extends JavaPlugin {
 	private Map<Painting, Date> paintings = Collections.synchronizedMap(new HashMap<Painting, Date>());					//paintings to be replaced
 	private Map<Location, BlockState> toReplace = Collections.synchronizedMap(new HashMap<Location,BlockState>());		//blocks to be replaced immediately after an explosion
 	protected Map<BlockState, Date> preventUpdate = Collections.synchronizedMap(new HashMap<BlockState, Date>());
+	protected Map<Location, Date> explosionList = Collections.synchronizedMap(new HashMap<Location, Date>());
 
 	/**
 	 * Config settings
@@ -289,33 +290,13 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-
 		block_interval = configInt("block-per-block-interval", 20);
 
 		loadConfig();        //read the rest of the config.
 
 		config_write();         //updates the config, allowing for some field creation.
 
-		/*
-		 * Registering events
-		 */
 
-		PluginManager pm = getServer().getPluginManager(); 
-
-
-		pm.registerEvent(Event.Type.BLOCK_BREAK, block_listener, Event.Priority.Normal, this);
-
-
-		pm.registerEvent(Event.Type.ENTITY_EXPLODE, listener, Event.Priority.High, this);
-
-
-		pm.registerEvent(Event.Type.BLOCK_BURN, fire_listener, Event.Priority.Monitor, this);
-
-		pm.registerEvent(Event.Type.ENDERMAN_PICKUP, ender_listener, Event.Priority.High, this);
-
-		pm.registerEvent(Event.Type.ENTITY_DAMAGE, listener, Event.Priority.High, this);
-
-		pm.registerEvent(Event.Type.BLOCK_PHYSICS, block_listener, Event.Priority.Normal, this);
 
 		/*
 		 * Recurrent tasks
@@ -324,13 +305,13 @@ public class CreeperHeal extends JavaPlugin {
 		int tmp_period = 20;        //register the task to go every "period" second if all at once
 		if(block_per_block)                    //or every "block_interval" ticks if block_per_block
 			tmp_period = block_interval;
-		if( getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
+		if( getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
 				check_replace(block_per_block);        //check to replace explosions/blocks
 			}}, 200, tmp_period) == -1)
 			log.warning("[CreeperHeal] Impossible to schedule the re-filling task. Auto-refill will not work");
 
-		if( getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
+		if( getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
 				replace_burnt();
 			}}, 200, block_interval) == -1)
@@ -338,9 +319,9 @@ public class CreeperHeal extends JavaPlugin {
 
 		if( getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
 			public void run() {
-				cleanRailsMap();
+				cleanMaps();
 			}}, 200, 600) == -1)
-			log.warning("[CreeperHeal] Impossible to schedule the replace-burnt task. Burnt blocks replacement will not work");
+			log.warning("[CreeperHeal] Impossible to schedule the map-cleaning task. Map cleaning will not work");
 
 
 
@@ -348,16 +329,20 @@ public class CreeperHeal extends JavaPlugin {
 		 * Connection with the other plugins
 		 */
 
-		Plugin lwcPlugin = getServer().getPluginManager().getPlugin("LWC");
+		PluginManager pm = getServer().getPluginManager(); 
+
+
+
+		Plugin lwcPlugin = pm.getPlugin("LWC");
 		if(lwcPlugin != null) {
 			lwc = ((LWCPlugin) lwcPlugin).getLWC();
 			log_info("Successfully hooked in LWC",0);
 		}
 
-		Plugin lockettePlugin = getServer().getPluginManager().getPlugin("Lockette");
+		Plugin lockettePlugin = pm.getPlugin("Lockette");
 		if(lockettePlugin!=null){
 			lockette  = true;
-			log_info("Successfully hooked in Lockette",0);
+			log_info("Successfully detected Lockette",0);
 		}
 
 		PluginDescriptionFile pdfFile = this.getDescription();
@@ -370,22 +355,59 @@ public class CreeperHeal extends JavaPlugin {
 		}
 
 
+
+
+
+		/*
+		 * Registering events
+		 */
+
+
+
+		pm.registerEvent(Event.Type.BLOCK_BREAK, block_listener, Event.Priority.Normal, this);
+
+		pm.registerEvent(Event.Type.ENTITY_EXPLODE, listener, Event.Priority.Monitor, this);
+
+		pm.registerEvent(Event.Type.BLOCK_BURN, fire_listener, Event.Priority.Monitor, this);
+
+		pm.registerEvent(Event.Type.ENDERMAN_PICKUP, ender_listener, Event.Priority.High, this);
+
+		pm.registerEvent(Event.Type.ENTITY_DAMAGE, listener, Event.Priority.High, this);
+
+		pm.registerEvent(Event.Type.BLOCK_PHYSICS, block_listener, Event.Priority.Normal, this);
+
+		pm.registerEvent(Event.Type.LEAVES_DECAY, block_listener, Event.Priority.Normal, this);
+
+
+
+
 		log.info("[CreeperHeal] version "+pdfFile.getVersion()+" by nitnelave is enabled");
 	}
 
 
 
 
-	protected void cleanRailsMap()
+	protected void cleanMaps()
 	{
 		Date now = new Date();
+		Date delay = new Date(now.getTime() - 10000*block_interval);
 		Iterator<Date> iter = preventUpdate.values().iterator();
 		while(iter.hasNext())
 		{
 			Date date = iter.next();
-			if(date.before(new Date(now.getTime() + 100*block_interval)))
+			if(date.before(delay))
 				iter.remove();
 		}
+		iter = explosionList.values().iterator();
+		while(iter.hasNext())
+		{
+			Date date = iter.next();
+			if(date.before(now))
+			{
+				iter.remove();
+			}
+		}
+
 	}
 
 
@@ -652,6 +674,8 @@ public class CreeperHeal extends JavaPlugin {
 		List<Block> list = event.blockList();            //the list declared by the explosion
 		List<BlockState> list_state = new ArrayList<BlockState>();        //the list of blockstate we'll be keeping afterward
 
+		explosionList.put(event.getLocation(), new Date(now.getTime() + 1000*interval + 50*list.size()*block_interval));
+
 		if(maHandler != null) 
 		{
 			if (maHandler.inRegion(event.getLocation())) 
@@ -727,8 +751,12 @@ public class CreeperHeal extends JavaPlugin {
 						}
 						break;
 					case AIR :                        //don't store air
+					case OBSIDIAN :
+					case BEDROCK :
+						break;
 					case FIRE :                        //or fire
 					case PISTON_EXTENSION :				//pistons are special, don't store this part
+						block.setData((byte) 0);
 						break;
 					case TNT :      //add the traps triggered to the list of blocks to be replaced
 						if(isTrap(block) || loadWorldConfig(block.getWorld()).replace_tnt)
@@ -1044,31 +1072,42 @@ public class CreeperHeal extends JavaPlugin {
 	{
 		Block block = blockState.getBlock();
 		int block_id = block.getTypeId();
+		int tmp_id = 0;
 
-		if(!overwrite_blocks && block_id != 0) {        //drop an item on the spot
+		if(!overwrite_blocks && block_id != 0 && !blocks_physics.contains(blockState.getTypeId())) {        //drop an item on the spot
 			if(drop_blocks_replaced)
 				dropBlock(blockState);
 			return;
 		}
-		else if(overwrite_blocks && block_id != 0 && drop_blocks_replaced)
-			dropBlock(block.getState());
-
-		if(blocks_physics.contains(block_id))             //if the spot for the sand is occupied, put it in the first free spot above
+		else if(overwrite_blocks && block_id != 0 && drop_blocks_replaced && !blocks_physics.contains(block_id))
 		{
+			dropBlock(block.getState());
+		}
+
+		if(blocks_physics.contains(block_id) && overwrite_blocks || !overwrite_blocks && blocks_physics.contains(blockState.getTypeId()))
+		{
+			if(overwrite_blocks)
+				tmp_id = block_id;
+			else
+				tmp_id = blockState.getTypeId();
+
 			for(int k = 1; block.getY() + k < 128; k++) 
 			{
 				if(block.getRelative(0,k,0) != null) 
 				{
 					if(block.getRelative(0, k, 0).getTypeId() == 0) 
 					{
-						block.getRelative(0, k, 0).setTypeIdAndData(block_id, (byte)0, false);
+						block.getRelative(0, k, 0).setTypeIdAndData(tmp_id, (byte)0, false);
 						break;
 					}
 				}
 			}
+			if(!overwrite_blocks)
+				return;
 		}
 		else
 		{
+
 			if(blocks_dependent_down.contains(blockState.getTypeId()) && blockState.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR)
 				delay_replacement(blockState);
 			else if(blockState instanceof Attachable && blockState.getBlock().getRelative(((Attachable) blockState).getAttachedFace()).getType() == Material.AIR)
@@ -1785,8 +1824,6 @@ public class CreeperHeal extends JavaPlugin {
 		}
 
 	}
-
-
 
 
 

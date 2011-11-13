@@ -1,19 +1,22 @@
 package com.nitnelave.CreeperHeal;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.material.Rails;
 
 public class TNTBreakListener extends BlockListener {
-	
+
 	CreeperHeal plugin;
-	
+
 	public TNTBreakListener (CreeperHeal instance) {
 		plugin = instance;
 	}
-	
+
 	public void onBlockBreak(BlockBreakEvent event) {
 		plugin.log_info("block_break!", 3);
 		if(!(event.isCancelled())) {
@@ -27,12 +30,43 @@ public class TNTBreakListener extends BlockListener {
 			}
 		}
 	}
-	
+
 	@Override
 	public void onBlockPhysics(BlockPhysicsEvent event)
 	{
-		if(plugin.preventUpdate.containsKey(event.getBlock().getState()))
-			event.setCancelled(true);
+		Block b = event.getBlock();
+		if(b.getState() instanceof Rails)
+		{
+			if(plugin.preventUpdate.containsKey(event.getBlock().getState()))
+				event.setCancelled(true);
+		}
+		else if(b.getType() == Material.VINE)
+		{
+			Location vineLoc = event.getBlock().getLocation();
+			for(Location loc : plugin.explosionList.keySet())
+			{
+				if(loc.distance(vineLoc) < 20)
+				{
+					event.setCancelled(true);
+					break;
+				}
+			}
+		}
 	}
+
+	@Override
+	public void onLeavesDecay(LeavesDecayEvent e)
+	{
+		Location leafLoc = e.getBlock().getLocation();
+		for(Location loc : plugin.explosionList.keySet())
+		{
+			if(loc.distance(leafLoc) < 20)
+			{
+				e.setCancelled(true);
+				break;
+			}
+		}
+	}
+
 
 }

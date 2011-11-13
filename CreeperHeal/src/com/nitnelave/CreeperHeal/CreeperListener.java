@@ -33,7 +33,6 @@ public class CreeperListener extends EntityListener{
 				recordBlocks(event, world);
 		}
 		
-		//plugin.checkForPaintings(event);
 	}
 
 	private void recordBlocks(EntityExplodeEvent event, WorldConfig world) {
