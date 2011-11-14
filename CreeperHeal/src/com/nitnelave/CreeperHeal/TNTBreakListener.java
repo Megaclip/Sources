@@ -48,7 +48,15 @@ public class TNTBreakListener extends BlockListener {
 				if(loc.distance(vineLoc) < 20)
 				{
 					event.setCancelled(true);
-					break;
+					return;
+				}
+			}
+			for(Location loc : plugin.fireList.keySet())
+			{
+				if(loc.distance(vineLoc) < 10)
+				{
+					event.setCancelled(true);
+					return;
 				}
 			}
 		}
@@ -63,7 +71,15 @@ public class TNTBreakListener extends BlockListener {
 			if(loc.distance(leafLoc) < 20)
 			{
 				e.setCancelled(true);
-				break;
+				return;
+			}
+		}
+		for(Location loc : plugin.fireList.keySet())
+		{
+			if(loc.distance(leafLoc) < 5)
+			{
+				e.setCancelled(true);
+				return;
 			}
 		}
 	}

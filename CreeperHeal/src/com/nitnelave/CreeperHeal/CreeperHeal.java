@@ -219,6 +219,7 @@ public class CreeperHeal extends JavaPlugin {
 	private Map<Location, BlockState> toReplace = Collections.synchronizedMap(new HashMap<Location,BlockState>());		//blocks to be replaced immediately after an explosion
 	protected Map<BlockState, Date> preventUpdate = Collections.synchronizedMap(new HashMap<BlockState, Date>());
 	protected Map<Location, Date> explosionList = Collections.synchronizedMap(new HashMap<Location, Date>());
+	protected Map<Location, Date> fireList = Collections.synchronizedMap(new HashMap<Location, Date>());
 
 	/**
 	 * Config settings
@@ -406,6 +407,14 @@ public class CreeperHeal extends JavaPlugin {
 			{
 				iter.remove();
 			}
+		}
+		iter = explosionList.values().iterator();
+		delay = new Date(now.getTime() - 1000 * burn_interval);
+		while(iter.hasNext())
+		{
+			Date date = iter.next();
+			if(date.before(delay))
+				iter.remove();
 		}
 
 	}
@@ -1217,6 +1226,7 @@ public class CreeperHeal extends JavaPlugin {
 		if(block.getType() != Material.TNT) {        //unless it's TNT triggered by fire
 			Date now = new Date();
 			map_burn.put(now, block.getState());
+			fireList.put(block.getLocation(), now);
 			BlockState block_up = block.getRelative(BlockFace.UP).getState();
 			if(blocks_last.contains(block_up.getTypeId())) {        //the block above is a dependent block, store it, but one interval after
 				map_burn.put(new Date(now.getTime() + burn_interval*1000), block_up);
