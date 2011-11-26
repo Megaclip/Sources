@@ -26,7 +26,7 @@ public class EnderListener extends EntityListener{
 	}
 
 	private WorldConfig getWorld(World w) {
-		return plugin.loadWorldConfig(w);
+		return plugin.loadWorld(w);
 	}
 
 

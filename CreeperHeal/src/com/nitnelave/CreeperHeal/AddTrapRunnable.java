@@ -1,6 +1,7 @@
 package com.nitnelave.CreeperHeal;
 
 import java.util.Date;
+import java.util.List;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -26,7 +27,8 @@ public class AddTrapRunnable implements Runnable{
 
 		block.setType(Material.TNT);                            //set the block to tnt
 
-		plugin.map.get(date).add(block.getState());                //record it
+		List<BlockState> list = plugin.map.get(date);
+		list.add(block.getState());                //record it
 
 		tmp_state.update(true);        //set it back to what it was
 		

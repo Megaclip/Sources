@@ -40,7 +40,7 @@ public class CreeperListener extends EntityListener{
 	}
 
 	private WorldConfig getWorld(World w) {
-		return plugin.loadWorldConfig(w);
+		return plugin.loadWorld(w);
 	}
 
 
@@ -67,7 +67,7 @@ public class CreeperListener extends EntityListener{
 				return true;
 			else if(entity instanceof TNTPrimed && (world.tnt /*|| plugin.isTrap(entity)*/))                 //tnt -- it checks if it's a trap.
 				if(world.replaceAbove){
-					if(plugin.isAbove(entity, world.replaceLimit))
+					if(CreeperUtils.isAbove(entity, world.replaceLimit))
 						return true;
 				}
 				else
