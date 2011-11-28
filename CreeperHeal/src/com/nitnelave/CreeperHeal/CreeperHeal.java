@@ -56,7 +56,7 @@ public class CreeperHeal extends JavaPlugin {
 	 */
 
 
-	private final static ArrayList<Integer> blocks_physics = new ArrayList<Integer>(Arrays.asList(12,13,88));                        //sand gravel, soulsand fall
+	protected final static ArrayList<Integer> blocks_physics = new ArrayList<Integer>(Arrays.asList(12,13,88));                        //sand gravel, soulsand fall
 	protected final static ArrayList<Integer> blocks_last = new ArrayList<Integer>(Arrays.asList(6,18,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,81,83,93,94,96,104,105,106,115));  //blocks dependent on others. to put in last
 	private final static ArrayList<Integer> blocks_dependent_down = new ArrayList<Integer>(Arrays.asList(6,26,27,28,31,32,37,38,39,40,55,59,63,64,66,70,71,72,78,93,94,104,105,115));
 	protected final static ArrayList<Integer> blocks_non_solid = new ArrayList<Integer>(Arrays.asList(0,6,8,9,26,27,28,30,31,37,38,39,40, 50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96));   //the player can breathe
@@ -107,6 +107,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected Map<BlockState, Date> preventUpdate = Collections.synchronizedMap(new HashMap<BlockState, Date>());
 	protected Map<Location, Date> explosionList = Collections.synchronizedMap(new HashMap<Location, Date>());
 	protected Map<Location, Date> fireList = Collections.synchronizedMap(new HashMap<Location, Date>());
+	//protected Map<Location, Date> preventBlockFall = Collections.synchronizedMap(new HashMap<Location, Date>());
 
 
 
@@ -136,7 +137,7 @@ public class CreeperHeal extends JavaPlugin {
 		commandExecutor = new CreeperCommandManager(this);
 
 		getCommand("CreeperHeal").setExecutor(commandExecutor);
-		
+
 		/*
 		 * Recurrent tasks
 		 */
@@ -244,7 +245,7 @@ public class CreeperHeal extends JavaPlugin {
 				}
 			}catch(ConcurrentModificationException e){}
 		}
-		iter = explosionList.values().iterator();
+		iter = fireList.values().iterator();
 		delay = new Date(now.getTime() - 1000 * config.burn_interval);
 		while(iter.hasNext())
 		{
@@ -254,6 +255,16 @@ public class CreeperHeal extends JavaPlugin {
 					iter.remove();
 			}catch(ConcurrentModificationException e){}
 		}
+		/*iter = preventBlockFall.values().iterator();
+		delay = new Date(now.getTime() - 10000*config.block_interval);
+		while(iter.hasNext())
+		{
+			try{
+				Date date = iter.next();
+				if(date.before(delay))
+					iter.remove();
+			}catch(ConcurrentModificationException e){}
+		}*/
 
 	}
 
@@ -418,9 +429,9 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-		map.put(now, list_state);        //store in the global hashmap, with the time it happened as a key
+				map.put(now, list_state);        //store in the global hashmap, with the time it happened as a key
 
-		log_info("EXPLOSION!", 3);
+				log_info("EXPLOSION!", 3);
 
 
 
@@ -615,19 +626,19 @@ public class CreeperHeal extends JavaPlugin {
 	{
 		Block block = blockState.getBlock();
 		int block_id = block.getTypeId();
-		int tmp_id = 0;
+		//int tmp_id = 0;
 
-		if(!config.overwrite_blocks && block_id != 0 && !blocks_physics.contains(blockState.getTypeId())) {        //drop an item on the spot
+		if(!config.overwrite_blocks && block_id != 0) {        //drop an item on the spot
 			if(config.drop_blocks_replaced)
 				dropBlock(blockState);
 			return;
 		}
-		else if(config.overwrite_blocks && block_id != 0 && config.drop_blocks_replaced && !blocks_physics.contains(block_id))
+		else if(config.overwrite_blocks && block_id != 0 && config.drop_blocks_replaced)
 		{
 			dropBlock(block.getState());
 		}
 
-		if(blocks_physics.contains(block_id) && config.overwrite_blocks || !config.overwrite_blocks && blocks_physics.contains(blockState.getTypeId()))
+		/*if(blocks_physics.contains(block_id) && config.overwrite_blocks || !config.overwrite_blocks && blocks_physics.contains(blockState.getTypeId()))
 		{
 			if(config.overwrite_blocks)
 				tmp_id = block_id;
@@ -649,41 +660,46 @@ public class CreeperHeal extends JavaPlugin {
 				return;
 		}
 		else
-		{
+		{*/
 
-			if(blocks_dependent_down.contains(blockState.getTypeId()) && blockState.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR)
-				delay_replacement(blockState);
-			else if(blockState instanceof Attachable && blockState.getBlock().getRelative(((Attachable) blockState).getAttachedFace()).getType() == Material.AIR)
-				delay_replacement(blockState);
-			else
+		if(blocks_dependent_down.contains(blockState.getTypeId()) && blockState.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR)
+			delay_replacement(blockState);
+		else if(blockState instanceof Attachable && blockState.getBlock().getRelative(((Attachable) blockState).getAttachedFace()).getType() == Material.AIR)
+			delay_replacement(blockState);
+		else
+		{
+			if (blockState.getType() == Material.WOODEN_DOOR || blockState.getType() == Material.IRON_DOOR_BLOCK)         //if it's a door, put the bottom then the top (which is unrecorded)
 			{
-				if (blockState.getType() == Material.WOODEN_DOOR || blockState.getType() == Material.IRON_DOOR_BLOCK)         //if it's a door, put the bottom then the top (which is unrecorded)
-				{
-					blockState.update(true);
-					block.getRelative(BlockFace.UP).setTypeIdAndData(blockState.getTypeId(), (byte)(blockState.getRawData() + 8), false);
-				}
-				else if(blockState.getType() == Material.BED_BLOCK) 
-				{        //put the head, then the feet
-					byte data = blockState.getRawData();
-					BlockFace face;
-					if(data == 0)            //facing the right way
-						face = BlockFace.WEST;
-					else if(data == 1)
-						face = BlockFace.NORTH;
-					else if(data == 2)
-						face = BlockFace.EAST;
-					else
-						face = BlockFace.SOUTH;
-					blockState.update(true);
-					block.getRelative(face).setTypeIdAndData(blockState.getTypeId(), (byte)(data + 8), false);    //feet
-				}
-				else if(blockState.getType() == Material.PISTON_MOVING_PIECE) {}
-				else if(blockState.getType() == Material.RAILS || blockState.getType() == Material.POWERED_RAIL || blockState.getType() == Material.DETECTOR_RAIL)
-					getServer().getScheduler().scheduleAsyncDelayedTask(this, new ReorientRails(blockState));//enforce the rails' direction, as it sometimes get messed up by the other rails around
-				else         //rest of it, just normal
-					blockState.update(true);
+				blockState.update(true);
+				block.getRelative(BlockFace.UP).setTypeIdAndData(blockState.getTypeId(), (byte)(blockState.getRawData() + 8), false);
 			}
+			else if(blockState.getType() == Material.BED_BLOCK) 
+			{        //put the head, then the feet
+				byte data = blockState.getRawData();
+				BlockFace face;
+				if(data == 0)            //facing the right way
+					face = BlockFace.WEST;
+				else if(data == 1)
+					face = BlockFace.NORTH;
+				else if(data == 2)
+					face = BlockFace.EAST;
+				else
+					face = BlockFace.SOUTH;
+				blockState.update(true);
+				block.getRelative(face).setTypeIdAndData(blockState.getTypeId(), (byte)(data + 8), false);    //feet
+			}
+			else if(blockState.getType() == Material.PISTON_MOVING_PIECE) {}
+			else if(blockState.getType() == Material.RAILS || blockState.getType() == Material.POWERED_RAIL || blockState.getType() == Material.DETECTOR_RAIL)
+				getServer().getScheduler().scheduleAsyncDelayedTask(this, new ReorientRails(blockState));//enforce the rails' direction, as it sometimes get messed up by the other rails around
+			/*else if(blocks_physics.contains(blockState.getTypeId()))
+			{
+				preventBlockFall.put(blockState.getBlock().getLocation(), new Date());
+				blockState.update(true);
+			}*/
+			else         //rest of it, just normal
+				blockState.update(true);
 		}
+		//}
 
 		CreeperUtils.checkForAscendingRails(blockState, preventUpdate);
 		if(block.getState() instanceof ContainerBlock) {            //if it's a chest, put the inventory back

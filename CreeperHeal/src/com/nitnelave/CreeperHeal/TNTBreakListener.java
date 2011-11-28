@@ -2,6 +2,7 @@ package com.nitnelave.CreeperHeal;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockListener;
@@ -34,52 +35,85 @@ public class TNTBreakListener extends BlockListener {
 	@Override
 	public void onBlockPhysics(BlockPhysicsEvent event)
 	{
+		//event.setCancelled(true);
 		Block b = event.getBlock();
 		if(b.getState() instanceof Rails)
 		{
-			if(plugin.preventUpdate.containsKey(event.getBlock().getState()))
+			if(plugin.preventUpdate.containsKey(b.getState()))
 				event.setCancelled(true);
 		}
 		else if(b.getType() == Material.VINE)
 		{
-			Location vineLoc = event.getBlock().getLocation();
+			Location vineLoc = b.getLocation();
+			World w = vineLoc.getWorld();
 			for(Location loc : plugin.explosionList.keySet())
 			{
-				if(loc.distance(vineLoc) < 20)
+				if(loc.getWorld() == w)
 				{
-					event.setCancelled(true);
-					return;
+					if(loc.distance(vineLoc) < 20)
+					{
+						event.setCancelled(true);
+						return;
+					}
 				}
 			}
 			for(Location loc : plugin.fireList.keySet())
 			{
-				if(loc.distance(vineLoc) < 10)
+				if(loc.getWorld() == w)
 				{
-					event.setCancelled(true);
-					return;
+					if(loc.distance(vineLoc) < 10)
+					{
+						event.setCancelled(true);
+						return;
+					}
 				}
 			}
 		}
+		/*else if(CreeperHeal.blocks_physics.contains(b.getTypeId()))
+		{
+			Location bLoc = b.getLocation();
+			World w = bLoc.getWorld();
+			plugin.log_info("gravel falling", 0);
+			for(Location loc : plugin.preventBlockFall.keySet())
+			{
+				if(loc.getWorld() == w)
+				{
+					if(loc.distance(bLoc) < 10)
+					{
+						event.setCancelled(true);
+						plugin.log_info("gravel prevented from falling!", 0);
+						return;
+					}
+				}
+			}
+		}*/
 	}
 
 	@Override
 	public void onLeavesDecay(LeavesDecayEvent e)
 	{
 		Location leafLoc = e.getBlock().getLocation();
+		World w = leafLoc.getWorld();
 		for(Location loc : plugin.explosionList.keySet())
 		{
-			if(loc.distance(leafLoc) < 20)
+			if(loc.getWorld() == w)
 			{
-				e.setCancelled(true);
-				return;
+				if(loc.distance(leafLoc) < 20)
+				{
+					e.setCancelled(true);
+					return;
+				}
 			}
 		}
 		for(Location loc : plugin.fireList.keySet())
 		{
-			if(loc.distance(leafLoc) < 5)
+			if(loc.getWorld() == w)
 			{
-				e.setCancelled(true);
-				return;
+				if(loc.distance(leafLoc) < 5)
+				{
+					e.setCancelled(true);
+					return;
+				}
 			}
 		}
 	}
