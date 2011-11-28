@@ -60,6 +60,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected final static ArrayList<Integer> blocks_last = new ArrayList<Integer>(Arrays.asList(6,18,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,81,83,93,94,96,104,105,106,115));  //blocks dependent on others. to put in last
 	private final static ArrayList<Integer> blocks_dependent_down = new ArrayList<Integer>(Arrays.asList(6,26,27,28,31,32,37,38,39,40,55,59,63,64,66,70,71,72,78,93,94,104,105,115));
 	protected final static ArrayList<Integer> blocks_non_solid = new ArrayList<Integer>(Arrays.asList(0,6,8,9,26,27,28,30,31,37,38,39,40, 50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96));   //the player can breathe
+	private final static ArrayList<Integer> empty_blocks = new ArrayList<Integer>(Arrays.asList(0,8,9,10,11));
 	protected static HashSet<Byte> transparent_blocks = null;			//blocks that you can aim through while creating a trap.
 	private static final Map<Integer,Integer> blockDrops = new HashMap<Integer,Integer>();	//map to get the drop of a block
 
@@ -107,7 +108,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected Map<BlockState, Date> preventUpdate = Collections.synchronizedMap(new HashMap<BlockState, Date>());
 	protected Map<Location, Date> explosionList = Collections.synchronizedMap(new HashMap<Location, Date>());
 	protected Map<Location, Date> fireList = Collections.synchronizedMap(new HashMap<Location, Date>());
-	//protected Map<Location, Date> preventBlockFall = Collections.synchronizedMap(new HashMap<Location, Date>());
+	protected Map<Location, Date> preventBlockFall = Collections.synchronizedMap(new HashMap<Location, Date>());
 
 
 
@@ -160,7 +161,7 @@ public class CreeperHeal extends JavaPlugin {
 		if( getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
 			public void run() {
 				cleanMaps();
-			}}, 200, 600) == -1)
+			}}, 200, 200) == -1)
 			log.warning("[CreeperHeal] Impossible to schedule the map-cleaning task. Map cleaning will not work");
 
 
@@ -224,7 +225,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected void cleanMaps()
 	{
 		Date now = new Date();
-		Date delay = new Date(now.getTime() - 10000*config.block_interval);
+		Date delay = new Date(now.getTime() - 7500*config.block_interval);
 		Iterator<Date> iter = preventUpdate.values().iterator();
 		while(iter.hasNext())
 		{
@@ -232,6 +233,18 @@ public class CreeperHeal extends JavaPlugin {
 				Date date = iter.next();
 				if(date.before(delay))
 					iter.remove();
+			}catch(ConcurrentModificationException e){}
+		}
+		iter = preventBlockFall.values().iterator();
+		while(iter.hasNext())
+		{
+			try{
+				Date date = iter.next();
+				if(date.before(delay))
+				{
+					iter.remove();
+					log_info("gravel removed", 0);
+				}
 			}catch(ConcurrentModificationException e){}
 		}
 		iter = explosionList.values().iterator();
@@ -255,16 +268,7 @@ public class CreeperHeal extends JavaPlugin {
 					iter.remove();
 			}catch(ConcurrentModificationException e){}
 		}
-		/*iter = preventBlockFall.values().iterator();
-		delay = new Date(now.getTime() - 10000*config.block_interval);
-		while(iter.hasNext())
-		{
-			try{
-				Date date = iter.next();
-				if(date.before(delay))
-					iter.remove();
-			}catch(ConcurrentModificationException e){}
-		}*/
+		
 
 	}
 
@@ -691,11 +695,21 @@ public class CreeperHeal extends JavaPlugin {
 			else if(blockState.getType() == Material.PISTON_MOVING_PIECE) {}
 			else if(blockState.getType() == Material.RAILS || blockState.getType() == Material.POWERED_RAIL || blockState.getType() == Material.DETECTOR_RAIL)
 				getServer().getScheduler().scheduleAsyncDelayedTask(this, new ReorientRails(blockState));//enforce the rails' direction, as it sometimes get messed up by the other rails around
-			/*else if(blocks_physics.contains(blockState.getTypeId()))
+			else if(blocks_physics.contains(blockState.getTypeId()))
 			{
 				preventBlockFall.put(blockState.getBlock().getLocation(), new Date());
-				blockState.update(true);
-			}*/
+				Block tmp_block = block.getRelative(BlockFace.DOWN);
+				if(empty_blocks.contains(tmp_block.getTypeId()))
+				{
+					BlockState tmpState = tmp_block.getState();
+					tmp_block.setTypeId(4, false);
+					blockState.update(true);
+					getServer().getScheduler().scheduleSyncDelayedTask(this, new ReplaceBlockRunnable(tmpState), 2);
+				}
+				else
+					blockState.update(true);
+				
+			}
 			else         //rest of it, just normal
 				blockState.update(true);
 		}

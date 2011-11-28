@@ -49,7 +49,7 @@ teleport-when-buried :
 (true or false) If a player is caught in an explosion being healed and is suffocating, teleport him above to safety.
 
 verbose-level : 
-(0 - 5) Amount of plugin messages shown. 1 is recommended, higher is for dubugging purposes.
+(0 - 5) Amount of plugin messages shown. 1 is recommended, higher is for debugging purposes.
 
 op-have-all-permissions : 
 (true or false) OP are treated as admins by the plugin.
@@ -60,6 +60,9 @@ crack-destroyed-bricks :
 chest-protection: 
 (no, lwc, lockette or all) no: nothing particular. lwc: blocks protected by lwc will not blow up. lockette: blocks protected by lockette will not blow up
 all: no chest (or anything with an inventory) will blow up 
+
+prevent-block-fall:
+(true or false) If set to true, gravel/sand that should drop because the block beneath them has been destroyed don't. That ensures perfect terrain replacement.
 
 
 Per world :

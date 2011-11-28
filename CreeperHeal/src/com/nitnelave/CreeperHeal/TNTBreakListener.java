@@ -1,5 +1,7 @@
 package com.nitnelave.CreeperHeal;
 
+import java.util.Set;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -35,7 +37,6 @@ public class TNTBreakListener extends BlockListener {
 	@Override
 	public void onBlockPhysics(BlockPhysicsEvent event)
 	{
-		//event.setCancelled(true);
 		Block b = event.getBlock();
 		if(b.getState() instanceof Rails)
 		{
@@ -69,11 +70,15 @@ public class TNTBreakListener extends BlockListener {
 				}
 			}
 		}
-		/*else if(CreeperHeal.blocks_physics.contains(b.getTypeId()))
+		else if(CreeperHeal.blocks_physics.contains(b.getTypeId()))
 		{
 			Location bLoc = b.getLocation();
 			World w = bLoc.getWorld();
-			plugin.log_info("gravel falling", 0);
+			Set<Location> set = plugin.preventBlockFall.keySet();
+			try{
+				if(plugin.config.preventBlockFall)
+					set.addAll(plugin.explosionList.keySet());
+			}catch(UnsupportedOperationException e){}
 			for(Location loc : plugin.preventBlockFall.keySet())
 			{
 				if(loc.getWorld() == w)
@@ -81,12 +86,11 @@ public class TNTBreakListener extends BlockListener {
 					if(loc.distance(bLoc) < 10)
 					{
 						event.setCancelled(true);
-						plugin.log_info("gravel prevented from falling!", 0);
 						return;
 					}
 				}
 			}
-		}*/
+		}
 	}
 
 	@Override
