@@ -241,10 +241,7 @@ public class CreeperHeal extends JavaPlugin {
 			try{
 				Date date = iter.next();
 				if(date.before(delay))
-				{
 					iter.remove();
-					log_info("gravel removed", 0);
-				}
 			}catch(ConcurrentModificationException e){}
 		}
 		iter = explosionList.values().iterator();
@@ -253,9 +250,7 @@ public class CreeperHeal extends JavaPlugin {
 			try{
 				Date date = iter.next();
 				if(date.before(now))
-				{
 					iter.remove();
-				}
 			}catch(ConcurrentModificationException e){}
 		}
 		iter = fireList.values().iterator();
@@ -642,29 +637,7 @@ public class CreeperHeal extends JavaPlugin {
 			dropBlock(block.getState());
 		}
 
-		/*if(blocks_physics.contains(block_id) && config.overwrite_blocks || !config.overwrite_blocks && blocks_physics.contains(blockState.getTypeId()))
-		{
-			if(config.overwrite_blocks)
-				tmp_id = block_id;
-			else
-				tmp_id = blockState.getTypeId();
-
-			for(int k = 1; block.getY() + k < 128; k++) 
-			{
-				if(block.getRelative(0,k,0) != null) 
-				{
-					if(block.getRelative(0, k, 0).getTypeId() == 0) 
-					{
-						block.getRelative(0, k, 0).setTypeIdAndData(tmp_id, (byte)0, false);
-						break;
-					}
-				}
-			}
-			if(!config.overwrite_blocks)
-				return;
-		}
-		else
-		{*/
+		
 
 		if(blocks_dependent_down.contains(blockState.getTypeId()) && blockState.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR)
 			delay_replacement(blockState);
@@ -713,7 +686,6 @@ public class CreeperHeal extends JavaPlugin {
 			else         //rest of it, just normal
 				blockState.update(true);
 		}
-		//}
 
 		CreeperUtils.checkForAscendingRails(blockState, preventUpdate);
 		if(block.getState() instanceof ContainerBlock) {            //if it's a chest, put the inventory back
