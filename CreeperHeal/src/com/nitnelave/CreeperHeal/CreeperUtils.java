@@ -43,7 +43,7 @@ public class CreeperUtils
 			}
 		}
 	}
-	
+
 	public static boolean check_free_horizontal(World w, int x, int y, int z, LivingEntity en) {        //checks one up and down, to broaden the scope
 		for(int k = -1; k<2; k++){
 			if(check_free(w, x, y+k, z, en))
@@ -63,7 +63,7 @@ public class CreeperUtils
 		}
 		return false;
 	}
-	
+
 	public static void check_player_suffocate(LivingEntity en) {
 		Location loc = en.getLocation();
 		int x =loc.getBlockX();        //get the player's coordinates in ints, to have the block he's standing on
@@ -93,27 +93,50 @@ public class CreeperUtils
 		}
 
 	}
-	
+
 	public static Location getAttachingBlock(Location loc, Art art, BlockFace face)
 	{
-		int i = 0, j = 0, k = art.getBlockWidth() - 1;
-		switch(face){
-			case EAST:
-				break;
-			case WEST:
-				i = -k;
-				break;
-			case NORTH:
-				j = -k;
-				break;
-			case SOUTH:
-				break;
+		if(art.getBlockHeight() + art.getBlockWidth() < 5)
+		{
+			int i = 0, j = 0, k = art.getBlockWidth() - 1;
+			switch(face){
+				case EAST:
+					break;
+				case WEST:
+					i = -k;
+					break;
+				case NORTH:
+					j = -k;
+					break;
+				case SOUTH:
+					break;
+			}
+			loc.add(i, 1-art.getBlockHeight(), j);
 		}
-		loc.add(i, -art.getBlockHeight() + 1, j);
+		else 
+		{ 
+			if(art.getBlockHeight() == 4)
+				loc.add(0, -1, 0);
+			if(art.getBlockWidth() == 4)
+			{
+				switch(face){
+					case EAST:
+						break;
+					case WEST:
+						loc.add(-1, 0, 0);
+						break;
+					case NORTH:
+						loc.add(0, 0, -1);
+						break;
+					case SOUTH:
+						break;
+				}
+			}
+		}
 
 		return loc;
 	}
-	
+
 
 
 
@@ -130,7 +153,7 @@ public class CreeperUtils
 
 	}
 
-	
+
 
 
 }

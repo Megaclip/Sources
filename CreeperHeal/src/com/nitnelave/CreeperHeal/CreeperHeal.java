@@ -263,7 +263,7 @@ public class CreeperHeal extends JavaPlugin {
 					iter.remove();
 			}catch(ConcurrentModificationException e){}
 		}
-		
+
 
 	}
 
@@ -423,14 +423,16 @@ public class CreeperHeal extends JavaPlugin {
 		Arrays.sort(tmp_array, new CreeperComparator());
 		list_state.clear();
 		for(BlockState block : tmp_array) 
+		{
 			list_state.add(block);
+		}
 
 
 
 
-				map.put(now, list_state);        //store in the global hashmap, with the time it happened as a key
+		map.put(now, list_state);        //store in the global hashmap, with the time it happened as a key
 
-				log_info("EXPLOSION!", 3);
+		log_info("EXPLOSION!", 3);
 
 
 
@@ -516,7 +518,7 @@ public class CreeperHeal extends JavaPlugin {
 		EnumArt[] array = EnumArt.values();
 		paint.e = array[painting.getArt().getId()];
 		paint.b(paint.a);
-		if (!(paint).i()) {
+		if (!(paint).j()) {
 			paint = null;
 			w.dropItemNaturally(loc, new ItemStack(321, 1));
 			return;
@@ -572,6 +574,7 @@ public class CreeperHeal extends JavaPlugin {
 					{
 						replace_blocks(map.get(time));
 						log_info("Blocks replaced!", 2);
+						replacePaintings(time);
 					}
 					iterator.remove();
 
@@ -637,7 +640,7 @@ public class CreeperHeal extends JavaPlugin {
 			dropBlock(block.getState());
 		}
 
-		
+
 
 		if(blocks_dependent_down.contains(blockState.getTypeId()) && blockState.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR)
 			delay_replacement(blockState);
@@ -681,7 +684,7 @@ public class CreeperHeal extends JavaPlugin {
 				}
 				else
 					blockState.update(true);
-				
+
 			}
 			else         //rest of it, just normal
 				blockState.update(true);
