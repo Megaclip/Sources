@@ -245,11 +245,12 @@ public class CreeperHeal extends JavaPlugin {
 			}catch(ConcurrentModificationException e){}
 		}
 		iter = explosionList.values().iterator();
+		delay = new Date(now.getTime() - 1000*config.interval - 10000*config.block_interval);
 		while(iter.hasNext())
 		{
 			try{
 				Date date = iter.next();
-				if(date.before(now))
+				if(date.before(delay))
 					iter.remove();
 			}catch(ConcurrentModificationException e){}
 		}
@@ -295,7 +296,7 @@ public class CreeperHeal extends JavaPlugin {
 		List<Block> list = event.blockList();            //the list declared by the explosion
 		List<BlockState> list_state = new ArrayList<BlockState>();        //the list of blockstate we'll be keeping afterward
 
-		explosionList.put(event.getLocation(), new Date(now.getTime() + 1000*config.interval + 50*list.size()*config.block_interval));
+		explosionList.put(event.getLocation(), now);
 
 		if(maHandler != null) 
 		{
@@ -587,6 +588,8 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	private void replace_blocks(List<BlockState> list) {    //replace all the blocks in the given list
+		if(list == null)
+			return;
 		while(!list.isEmpty()){            //replace all non-physics non-dependent blocks
 			Iterator<BlockState> iter = list.iterator();
 			while (iter.hasNext()){
@@ -944,6 +947,35 @@ public class CreeperHeal extends JavaPlugin {
 	{
 		return config.loadWorld(w);
 	}
+
+
+
+
+
+	public void replaceNear(Player target)
+    {
+		int k = config.distanceNear;
+		Location playerLoc = target.getLocation();
+	    
+	    	World w = playerLoc.getWorld();
+	    	Iterator<Location> iter = explosionList.keySet().iterator();
+			while (iter.hasNext())
+			{
+				Location loc = iter.next();
+				if(loc.getWorld() == w)
+				{
+					if(loc.distance(playerLoc) < k)
+					{
+						Date time = explosionList.get(loc);
+						List<BlockState> list = map.get(time);
+						replace_blocks(list);
+						map.remove(time);
+						iter.remove();
+					}
+				}
+			}
+	    
+    }
 
 
 }

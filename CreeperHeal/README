@@ -64,6 +64,8 @@ all: no chest (or anything with an inventory) will blow up
 prevent-block-fall:
 (true or false) If set to true, gravel/sand that should drop because the block beneath them has been destroyed don't. That ensures perfect terrain replacement.
 
+distance-near:
+(number) The range of action of the healNear command.
 
 Per world :
 
@@ -116,16 +118,17 @@ COMMANDS
 
     /CreeperHeal (or/ch) is the main command/help menu.
     /ch reload : reloads the config from the file.
+    /ch heal (seconds) (world) : Heals all explosions in the last x seconds, or all explosions if not specified. Alias : /ch forceHeal
+    /ch healBurnt (seconds) (world): Heal all burnt blocks since x seconds, or all if x is not specified.
+    /ch trap (create|delete) : creates/removes a trap (auto-replacing tnt block).
+    /ch healNear (someone) : heal all explosions around you (or someone)
     /ch creeper (on|off) (world) : toggles the creeper explosion replacement (can be used with on/off)
     /ch TNT (on|off) (world) : same thing for TNT
     /ch interval [seconds] : Sets the interval before an explosion is replaced to x seconds
-    /ch heal (seconds) (world) : Heals all explosions in the last x seconds, or all explosions if not specified. Alias : /ch forceHeal
-    /ch healBurnt (seconds) (world): Heal all burnt blocks since x seconds, or all if x is not specified.
     /ch fire (on|off) (world): toggles whether or not to replace fire damage
     /ch burnInterval [seconds] : Sets the interval before a block burnt is replaced
     /ch Ghast (on|off) (world): toggle Ghast fireballs explosions replacement
     /ch magical (on|off) (world): same thing for "magical" explosions (from other plugins).
-    /ch trap (create|delete) : creates/removes a trap (auto-replacing tnt block).
 
 
 

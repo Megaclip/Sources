@@ -47,6 +47,7 @@ public class CreeperConfig
 	protected String chestProtection = "no";		//no, lwc or lockette
 	protected boolean overwrite_blocks;			//which block has the priority in case of a conflict : new or old?
 	protected boolean preventBlockFall;			//prevent gravel from dropping if near an explosion
+	public int distanceNear = 20;				//range of action of the healnear command
 	private CreeperHeal plugin;
 	private FileConfiguration configFile;
 	protected Map<String, WorldConfig> world_config = Collections.synchronizedMap(new HashMap<String, WorldConfig>());		//config for each world
@@ -144,6 +145,8 @@ public class CreeperConfig
 		overwrite_blocks = getBoolean("overwrite-blocks", true);
 		
 		preventBlockFall = getBoolean("prevent-block-fall", true);
+		
+		distanceNear = getInt("distance-near", 20);
 
 		try{
 			tmp_str = configFile.getString("chest-protection", "no").trim().toLowerCase();
@@ -237,6 +240,7 @@ public class CreeperConfig
 		configFile.set("chest-protection", chestProtection );
 		configFile.set("overwrite-blocks", overwrite_blocks);
 		configFile.set("prevent-block-fall", preventBlockFall);
+		configFile.set("distance-near", distanceNear);
 
 
 
