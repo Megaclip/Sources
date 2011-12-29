@@ -382,7 +382,7 @@ public class CreeperHeal extends JavaPlugin {
 						break;
 					case TNT :      //add the traps triggered to the list of blocks to be replaced
 						if(isTrap(block) || loadWorld(block.getWorld()).replace_tnt)
-							getServer().getScheduler().scheduleAsyncDelayedTask(this, new AddTrapRunnable(now, block,this));
+							getServer().getScheduler().scheduleSyncDelayedTask(this, new AddTrapRunnable(now, block,this));
 						break;
 					case SMOOTH_BRICK :
 					case BRICK_STAIRS :
@@ -673,7 +673,7 @@ public class CreeperHeal extends JavaPlugin {
 			}
 			else if(blockState.getType() == Material.PISTON_MOVING_PIECE) {}
 			else if(blockState.getType() == Material.RAILS || blockState.getType() == Material.POWERED_RAIL || blockState.getType() == Material.DETECTOR_RAIL)
-				getServer().getScheduler().scheduleAsyncDelayedTask(this, new ReorientRails(blockState));//enforce the rails' direction, as it sometimes get messed up by the other rails around
+				getServer().getScheduler().scheduleSyncDelayedTask(this, new ReorientRails(blockState));//enforce the rails' direction, as it sometimes get messed up by the other rails around
 			else if(blocks_physics.contains(blockState.getTypeId()))
 			{
 				preventBlockFall.put(blockState.getBlock().getLocation(), new Date());
@@ -732,7 +732,7 @@ public class CreeperHeal extends JavaPlugin {
 
 	protected void delay_replacement(BlockState blockState, int count)
 	{
-		getServer().getScheduler().scheduleAsyncDelayedTask(this, new DelayReplacement(this, blockState, count), config.block_interval);
+		getServer().getScheduler().scheduleSyncDelayedTask(this, new DelayReplacement(this, blockState, count), config.block_interval);
 	}
 
 
