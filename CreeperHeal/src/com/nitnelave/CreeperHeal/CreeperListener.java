@@ -4,6 +4,7 @@ package com.nitnelave.CreeperHeal;
 
 import org.bukkit.World;
 import org.bukkit.entity.Creeper;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Fireball;
 import org.bukkit.entity.TNTPrimed;
@@ -76,18 +77,21 @@ public class CreeperListener extends EntityListener{
 			else if(entity instanceof Fireball && world.ghast)         //fireballs (shot by ghasts)
 
 				return true;
-
-			else if(!(entity instanceof Creeper) && !(entity instanceof TNTPrimed) && !(entity instanceof Fireball) && world.magical)        //none of it, another custom entity
-
+			
+			else if(entity instanceof EnderDragon && world.dragons)
+				
 				return true;
 
+			else if(!(entity instanceof Creeper) && !(entity instanceof TNTPrimed) && !(entity instanceof Fireball) && !(entity instanceof EnderDragon) && world.magical)        //none of it, another custom entity
+			
+				return true;
+			
 		}
 
-		else if(world.magical) {
+		else if(world.magical) 
 
 			return true;
 
-		}      
 		return false;
 	}
 	

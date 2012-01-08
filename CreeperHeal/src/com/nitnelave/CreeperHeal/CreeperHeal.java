@@ -102,7 +102,7 @@ public class CreeperHeal extends JavaPlugin {
 	private Map<Location, String[]> sign_text = Collections.synchronizedMap(new HashMap<Location, String[]>());                    //stores the signs text
 	private Map<Location, Byte> note_block = Collections.synchronizedMap(new HashMap<Location, Byte>());								//stores the note blocks' notes
 	private Map<Location, String> mob_spawner = Collections.synchronizedMap(new HashMap<Location, String>());						//stores the mob spawners' type
-	private Map<String, String> trap_location = Collections.synchronizedMap(new HashMap<String, String>());					//list of all the trap blocks
+	protected Map<String, String> trap_location;					//list of all the trap blocks
 	private Map<Painting, Date> paintings = Collections.synchronizedMap(new HashMap<Painting, Date>());					//paintings to be replaced
 	private Map<Location, BlockState> toReplace = Collections.synchronizedMap(new HashMap<Location,BlockState>());		//blocks to be replaced immediately after an explosion
 	protected Map<BlockState, Date> preventUpdate = Collections.synchronizedMap(new HashMap<BlockState, Date>());

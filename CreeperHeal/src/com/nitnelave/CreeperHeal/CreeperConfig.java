@@ -22,7 +22,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class CreeperConfig
 {
 	
-	private final static String[] world_config_nodes = {"Creepers", "TNT", "Ghast", "Magical", "Fire", "restrict-blocks", "restrict-list", "replace-all-tnt", "replace-above-limit-only", "replace-limit", "block-enderman-pickup"}; //list of properties for the world config
+	private final static String[] world_config_nodes = {"Creepers", "TNT", "Ghast", "Magical", "Fire", "restrict-blocks", "restrict-list", "replace-all-tnt", "replace-above-limit-only", "replace-limit", "block-enderman-pickup", "dragons"}; //list of properties for the world config
 	protected final Logger log = Logger.getLogger("Minecraft");            //to output messages to the console/log
 
 	
@@ -83,7 +83,7 @@ public class CreeperConfig
 			}
 		}
 
-		loadTraps(trapFile);		//get the traps from the file
+		plugin.trap_location = loadTraps(trapFile);		//get the traps from the file
 
 		
 		load();
@@ -293,6 +293,8 @@ public class CreeperConfig
 			int replaceLimit = getInt(name + ".replace-limit", 64);
 
 			boolean enderman = getBoolean(name + ".block-enderman-pickup", false);
+			
+			boolean dragons = getBoolean(name + ".dragons", false);
 
 			String restrict_blocks;
 
@@ -354,7 +356,7 @@ public class CreeperConfig
 
 			}
 
-			returnValue = new WorldConfig(name, creeper, tnt, ghast, fire, magical, replace_tnt, restrict_blocks, restrict_list, replaceAbove, replaceLimit, enderman);
+			returnValue = new WorldConfig(name, creeper, tnt, ghast, fire, magical, replace_tnt, restrict_blocks, restrict_list, replaceAbove, replaceLimit, enderman, dragons);
 
 			world_config.put(name, returnValue);
 			return returnValue;
