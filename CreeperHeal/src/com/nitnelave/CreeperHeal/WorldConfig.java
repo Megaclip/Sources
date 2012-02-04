@@ -5,17 +5,20 @@ import java.util.ArrayList;
 
 public class WorldConfig {
 
-	public boolean creepers, tnt, fire, ghast, magical, replace_tnt, replaceAbove, enderman, dragons;
-	public String restrict_blocks, name;
-	public int replaceLimit;
+	public boolean  replace_tnt, enderman, replaceAbove;
+	public String restrict_blocks, name, creepers, tnt, fire, ghast, magical, dragons;
+	public int repairTime, replaceLimit;
 	public ArrayList<BlockId> block_list = new ArrayList<BlockId>();
 	
 
 
 	public WorldConfig(String world_name) {
-		creepers = tnt = ghast = fire = true;
-		magical = replace_tnt = replaceAbove = enderman = dragons = false;
+		creepers = tnt = ghast = fire = "true";
+		magical = dragons = "false";
+		replace_tnt = replaceAbove = enderman = false;
 		restrict_blocks = "false";
+		replaceLimit = 60;
+		repairTime = -1;
 		block_list = new ArrayList<BlockId>();        //sample whitelist
 		int[] tmp_list = { 1,2,3,9,11,12,13,14,15,16,17,18,21,24,31,32,37,38,39,40,48,49,56,73,79,81,82,86,87,88,89 };
 		for(int k : tmp_list)
@@ -24,7 +27,7 @@ public class WorldConfig {
 
 	}
 
-	public WorldConfig(String world_name, boolean tmp_creeper, boolean tmp_tnt, boolean tmp_ghast, boolean tmp_fire, boolean tmp_magical, boolean tmp_replace_tnt, String restrictBlocks, ArrayList<BlockId> blockList, boolean tmp_replaceAbove, int tmp_replaceLimit, boolean tmp_enderman, boolean dragons) {
+	public WorldConfig(String world_name, String tmp_creeper, String tmp_tnt, String tmp_ghast, String tmp_fire, String tmp_magical, boolean tmp_replace_tnt, String restrictBlocks, ArrayList<BlockId> blockList, boolean tmp_replaceAbove, int tmp_replaceLimit, boolean tmp_enderman, String dragons, int repairTime) {
 
 		creepers = tmp_creeper;
 
@@ -51,6 +54,8 @@ public class WorldConfig {
 		enderman = tmp_enderman;
 		
 		this.dragons = dragons;
+		
+		this.repairTime = repairTime;
 
 	}
 
@@ -75,6 +80,7 @@ public class WorldConfig {
 		list.add(replaceLimit);
 		list.add(enderman);
 		list.add(dragons);
+		list.add(repairTime);
 		
 		return list;
 		

@@ -33,7 +33,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
-import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.inventory.ItemStack;
@@ -87,9 +86,6 @@ public class CreeperHeal extends JavaPlugin {
 	 */
 
 	protected CreeperListener listener = new CreeperListener(this);                        //listener for explosions
-	private FireListener fire_listener = new FireListener(this);                        //listener for fire
-	private TNTBreakListener block_listener = new TNTBreakListener(this);				//catches the block break to prevent trap destruction
-	private EnderListener ender_listener = new EnderListener(this);						//catches the enderman pickup event to cancel it
 
 
 	/**
@@ -164,8 +160,6 @@ public class CreeperHeal extends JavaPlugin {
 			}}, 200, 200) == -1)
 			log.warning("[CreeperHeal] Impossible to schedule the map-cleaning task. Map cleaning will not work");
 
-
-
 		/*
 		 * Connection with the other plugins
 		 */
@@ -195,30 +189,29 @@ public class CreeperHeal extends JavaPlugin {
 		}
 
 
-		/*
-		 * Registering events
-		 */
-
-
-
-		pm.registerEvent(Event.Type.BLOCK_BREAK, block_listener, Event.Priority.Normal, this);
-
-		pm.registerEvent(Event.Type.ENTITY_EXPLODE, listener, Event.Priority.Monitor, this);
-
-		pm.registerEvent(Event.Type.BLOCK_BURN, fire_listener, Event.Priority.Monitor, this);
-
-		pm.registerEvent(Event.Type.ENDERMAN_PICKUP, ender_listener, Event.Priority.High, this);
-
-		pm.registerEvent(Event.Type.ENTITY_DAMAGE, listener, Event.Priority.High, this);
-
-		pm.registerEvent(Event.Type.BLOCK_PHYSICS, block_listener, Event.Priority.Normal, this);
-
-		pm.registerEvent(Event.Type.LEAVES_DECAY, block_listener, Event.Priority.Normal, this);
+		pm.registerEvents(listener, this);
+	
+		
 
 		log.info("[CreeperHeal] version "+pdfFile.getVersion()+" by nitnelave is enabled");
 	}
 
 
+
+
+	public void scheduleTimeRepairs()
+    {
+		if(getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
+			public void run() {
+				checkReplaceTime();
+			}}, 200, 1200) == -1)
+			
+			log.warning("[CreeperHeal] Impossible to schedule the time-repair task. Time repairs will not work");
+
+    }
+
+
+	
 
 
 
@@ -288,7 +281,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void recordBlocks(EntityExplodeEvent event, WorldConfig world) {        //record the list of blocks of an explosion, from bottom to top
+	public void recordBlocks(EntityExplodeEvent event, WorldConfig world, String should) {        //record the list of blocks of an explosion, from bottom to top
 		Date now = new Date();
 		while(map.containsKey(now))
 			now = new Date(now.getTime() + 1);
@@ -431,7 +424,10 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-		map.put(now, list_state);        //store in the global hashmap, with the time it happened as a key
+		if(should.equalsIgnoreCase("true"))
+			map.put(now, list_state);        //store in the global hashmap, with the time it happened as a key
+		else
+			map.put(new Date(now.getTime() + 1200000), list_state);
 
 		log_info("EXPLOSION!", 3);
 
@@ -517,9 +513,9 @@ public class CreeperHeal extends JavaPlugin {
 
 		EntityPainting paint = new EntityPainting(w.getHandle(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), dir);
 		EnumArt[] array = EnumArt.values();
-		paint.e = array[painting.getArt().getId()];
-		paint.b(paint.a);
-		if (!(paint).j()) {
+		paint.art = array[painting.getArt().getId()];
+		paint.setDirection(paint.direction);
+		if (!(paint).survives()) {
 			paint = null;
 			w.dropItemNaturally(loc, new ItemStack(321, 1));
 			return;
@@ -976,6 +972,28 @@ public class CreeperHeal extends JavaPlugin {
 			}
 	    
     }
+
+	protected void checkReplaceTime()
+	{
+		for(WorldConfig w : config.world_config.values()) {
+			long time = getServer().getWorld(w.name).getTime();
+			log_info("time :" + time, 0);
+			if(w.repairTime != -1 && ((Math.abs(w.repairTime - time) < 600) || (Math.abs(Math.abs(w.repairTime - time) - 24000)) < 600)){
+				force_replace(0, w);        
+				force_replace_burnt(0, w);
+			}
+		}
+	}
+
+
+
+
+
+
+
+
+
+
 
 
 }

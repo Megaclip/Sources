@@ -6,13 +6,14 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.material.Rails;
 
-public class TNTBreakListener extends BlockListener {
+public class TNTBreakListener implements Listener {
 
 	CreeperHeal plugin;
 
@@ -20,6 +21,7 @@ public class TNTBreakListener extends BlockListener {
 		plugin = instance;
 	}
 
+	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
 		plugin.log_info("block_break!", 3);
 		if(!(event.isCancelled())) {
@@ -34,7 +36,7 @@ public class TNTBreakListener extends BlockListener {
 		}
 	}
 
-	@Override
+	@EventHandler
 	public void onBlockPhysics(BlockPhysicsEvent event)
 	{
 		Block b = event.getBlock();
@@ -93,7 +95,7 @@ public class TNTBreakListener extends BlockListener {
 		}
 	}
 
-	@Override
+	@EventHandler
 	public void onLeavesDecay(LeavesDecayEvent e)
 	{
 		Location leafLoc = e.getBlock().getLocation();

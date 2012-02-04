@@ -161,7 +161,7 @@ public class CreeperCommandManager implements CommandExecutor
 	}
 
 
-	private boolean booleanCmd(boolean current, String[] args, String msg, CommandSender sender) 
+	private String booleanCmd(String current, String[] args, String msg, CommandSender sender) 
 	{		//changes a setting true/false
 		if(sender instanceof Player) 
 		{
@@ -170,20 +170,22 @@ public class CreeperCommandManager implements CommandExecutor
 				return current;
 			}
 		}
-		boolean return_value = false;
+		String return_value = "false";
 
 		if(args.length == 1)
-			return_value = !current;
+			return_value = current;
 		else if(args[1].equalsIgnoreCase("on"))
-			return_value = true;
+			return_value = "true";
 		else if(args[1].equalsIgnoreCase("off"))
-			return_value = false;
+			return_value = "false";
+		else if(args[1].equalsIgnoreCase("time"))
+			return_value = "time";
 		else {
-			sender.sendMessage("/ch " + args[0] + " (on|off)");
+			sender.sendMessage("/ch " + args[0] + " (on|off|time)");
 			sender.sendMessage("Toggles " + msg + " replacement on/off");
 			return current;
 		}
-		sender.sendMessage(ChatColor.GREEN + msg + " replacement set to : "+Boolean.toString(return_value));
+		sender.sendMessage(ChatColor.GREEN + msg + " replacement set to : "+return_value);
 		return return_value;
 
 	}

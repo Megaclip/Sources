@@ -22,9 +22,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class CreeperConfig
 {
 	
-	private final static String[] world_config_nodes = {"Creepers", "TNT", "Ghast", "Magical", "Fire", "restrict-blocks", "restrict-list", "replace-all-tnt", "replace-above-limit-only", "replace-limit", "block-enderman-pickup", "dragons"}; //list of properties for the world config
+	private final static String[] world_config_nodes = {"Creepers", "TNT", "Ghast", "Magical", "Fire", "restrict-blocks", "restrict-list", "replace-all-tnt", "replace-above-limit-only", "replace-limit", "block-enderman-pickup", "dragons", "repair-time"}; //list of properties for the world config
 	protected final Logger log = Logger.getLogger("Minecraft");            //to output messages to the console/log
-
+	private final static String[] STRING_BOOLEAN_OPTIONS = {"true", "false", "time"};
 	
 	/**
 	 * Config settings
@@ -114,7 +114,7 @@ public class CreeperConfig
 		log_level = getInt("verbose-level", 1);
 
 		drop_blocks_replaced = getBoolean("drop-overwritten-blocks", true);
-
+		
 
 		String tmp_str;
 
@@ -170,12 +170,15 @@ public class CreeperConfig
 		chestProtection = tmp_str;
 
 
-
+		boolean timeRepairs = false;
 		world_config.clear();
 		for(World w : plugin.getServer().getWorlds()) {
 			String name = w.getName();
-			loadWorld(name);
+			timeRepairs = timeRepairs || loadWorld(name).repairTime > -1;
 		}
+		
+		if(timeRepairs)
+			plugin.scheduleTimeRepairs();
 
 
 	}
@@ -278,13 +281,13 @@ public class CreeperConfig
 
 		if(returnValue == null){
 			log_info("Loading world: "+name, 1);
-			boolean creeper = getBoolean(name + ".Creepers", true);
-			boolean tnt = getBoolean(name + ".TNT", true);
-			boolean fire = getBoolean(name + ".Fire", true);
+			String creeper = getStringBoolean(name + ".Creepers", "true");
+			String tnt = getStringBoolean(name + ".TNT", "true");
+			String fire = getStringBoolean(name + ".Fire", "true");
 
-			boolean ghast = getBoolean(name + ".Ghast", true);
+			String ghast = getStringBoolean(name + ".Ghast", "true");
 
-			boolean magical = getBoolean(name + ".Magical", false );
+			String magical = getStringBoolean(name + ".Magical", "false" );
 
 			boolean replace_tnt = getBoolean(name + ".replace-all-tnt", false);
 
@@ -294,7 +297,9 @@ public class CreeperConfig
 
 			boolean enderman = getBoolean(name + ".block-enderman-pickup", false);
 			
-			boolean dragons = getBoolean(name + ".dragons", false);
+			String dragons = getStringBoolean(name + ".dragons", "false");
+			
+			int wRepairTime = getInt(name + ".repair-time", -1);
 
 			String restrict_blocks;
 
@@ -356,7 +361,7 @@ public class CreeperConfig
 
 			}
 
-			returnValue = new WorldConfig(name, creeper, tnt, ghast, fire, magical, replace_tnt, restrict_blocks, restrict_list, replaceAbove, replaceLimit, enderman, dragons);
+			returnValue = new WorldConfig(name, creeper, tnt, ghast, fire, magical, replace_tnt, restrict_blocks, restrict_list, replaceAbove, replaceLimit, enderman, dragons, wRepairTime);
 
 			world_config.put(name, returnValue);
 			return returnValue;
@@ -364,6 +369,30 @@ public class CreeperConfig
 
 		return returnValue;
 	}
+
+	private String getStringBoolean(String path, String defaultValue)
+    {
+		String result = new String();
+		try{
+			result = configFile.getString(path, defaultValue).trim().toLowerCase();
+		}
+		catch (Exception e) {
+			log.warning("[CreeperHeal] Wrong value for "+path+" field. Defaulting to "+defaultValue+".");
+			log_info(e.getLocalizedMessage(), 1);
+			result = defaultValue;
+		}
+
+		boolean correct = false;
+		for(int i = 0; i<= 2; i++)
+			correct = correct || STRING_BOOLEAN_OPTIONS[i].equalsIgnoreCase(result);
+		
+		if(!correct)
+		{
+			log.warning("[CreeperHeal] Wrong value for "+path+" field. Defaulting to "+defaultValue+".");
+			return defaultValue;
+		}
+		return result;
+    }
 
 	public Map<String, String> loadTraps(File file) {     //reads the traps from the file
 		Map<String, String> trap_location = Collections.synchronizedMap(new HashMap<String, String>());;
@@ -417,6 +446,8 @@ public class CreeperConfig
 		if(level<=log_level)
 			log.info("[CreeperHeal] "+msg);
 	}
+
+
 	
 	
 	
