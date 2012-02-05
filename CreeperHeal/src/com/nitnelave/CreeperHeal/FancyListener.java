@@ -1,5 +1,6 @@
 package com.nitnelave.CreeperHeal;
 
+import java.util.ConcurrentModificationException;
 import java.util.Set;
 
 import org.bukkit.Location;
@@ -8,32 +9,18 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.material.Rails;
 
-public class TNTBreakListener implements Listener {
+public class FancyListener implements Listener
+{
+	private CreeperHeal plugin;
 
-	CreeperHeal plugin;
 
-	public TNTBreakListener (CreeperHeal instance) {
+	public FancyListener(CreeperHeal instance)
+	{
 		plugin = instance;
-	}
-
-	@EventHandler
-	public void onBlockBreak(BlockBreakEvent event) {
-		plugin.log_info("block_break!", 3);
-		if(!(event.isCancelled())) {
-			Block block = event.getBlock();
-			if(block.getType() == Material.TNT) {
-				plugin.log_info("breaking tnt", 2);
-				if(plugin.isTrap(block)){
-					event.setCancelled(!plugin.deleteTrap(event.getPlayer()));
-					plugin.log_info("breaking trap", 2);
-				}
-			}
-		}
 	}
 
 	@EventHandler
@@ -49,28 +36,33 @@ public class TNTBreakListener implements Listener {
 		{
 			Location vineLoc = b.getLocation();
 			World w = vineLoc.getWorld();
-			for(Location loc : plugin.explosionList.keySet())
-			{
-				if(loc.getWorld() == w)
+			try{
+				for(Location loc : plugin.explosionList.keySet())
 				{
-					if(loc.distance(vineLoc) < 20)
+					if(loc.getWorld() == w)
 					{
-						event.setCancelled(true);
-						return;
+						if(loc.distance(vineLoc) < 20)
+						{
+							event.setCancelled(true);
+							return;
+						}
 					}
 				}
-			}
-			for(Location loc : plugin.fireList.keySet())
-			{
-				if(loc.getWorld() == w)
+			}catch(ConcurrentModificationException e)
+			{}
+			try{
+				for(Location loc : plugin.fireList.keySet())
 				{
-					if(loc.distance(vineLoc) < 10)
+					if(loc.getWorld() == w)
 					{
-						event.setCancelled(true);
-						return;
+						if(loc.distance(vineLoc) < 10)
+						{
+							event.setCancelled(true);
+							return;
+						}
 					}
 				}
-			}
+			}catch(ConcurrentModificationException e){}
 		}
 		else if(CreeperHeal.blocks_physics.contains(b.getTypeId()))
 		{
@@ -80,7 +72,10 @@ public class TNTBreakListener implements Listener {
 			try{
 				if(plugin.config.preventBlockFall)
 					set.addAll(plugin.explosionList.keySet());
-			}catch(UnsupportedOperationException e){}
+			}catch(UnsupportedOperationException e){
+				plugin.log_info("Unsupported Operation", 3);
+			}
+			try{
 			for(Location loc : plugin.preventBlockFall.keySet())
 			{
 				if(loc.getWorld() == w)
@@ -92,6 +87,7 @@ public class TNTBreakListener implements Listener {
 					}
 				}
 			}
+			}catch(ConcurrentModificationException e){}
 		}
 	}
 
@@ -123,6 +119,5 @@ public class TNTBreakListener implements Listener {
 			}
 		}
 	}
-
 
 }

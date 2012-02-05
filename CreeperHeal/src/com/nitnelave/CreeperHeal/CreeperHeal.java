@@ -86,7 +86,7 @@ public class CreeperHeal extends JavaPlugin {
 	 */
 
 	protected CreeperListener listener = new CreeperListener(this);                        //listener for explosions
-
+	private FancyListener fancyListener = new FancyListener(this);
 
 	/**
 	 * HashMaps
@@ -190,6 +190,9 @@ public class CreeperHeal extends JavaPlugin {
 
 
 		pm.registerEvents(listener, this);
+		
+		if(!(config.lightweight))
+			pm.registerEvents(fancyListener, this);
 	
 		
 
@@ -468,65 +471,6 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	}
-
-	private void replacePaintings(Date time)
-	{
-		Iterator<Painting> iter = paintings.keySet().iterator();
-		log_info("replacing paintings",2);
-		while(iter.hasNext())
-		{
-
-			Painting painting = iter.next();
-			Date date = paintings.get(painting);
-			if(Math.abs(date.getTime() - time.getTime()) < 500 || map.size() == 0);
-			{
-				log_info("painting : right time!",3);
-				replacePainting(painting);
-				iter.remove();
-			}
-		}
-	}
-
-	private void replacePainting(Painting painting) {
-		BlockFace face = painting.getAttachedFace().getOppositeFace();
-		Location loc = painting.getLocation().getBlock().getRelative(face.getOppositeFace()).getLocation();
-		CraftWorld w = (CraftWorld) loc.getWorld();
-
-		loc = CreeperUtils.getAttachingBlock(loc, painting.getArt(), face);
-
-		int dir;
-		switch(face) {
-			case EAST:
-			default:
-				dir = 0;
-				break;
-			case NORTH:
-				dir = 1;
-				break;
-			case WEST:
-				dir = 2;
-				break;
-			case SOUTH:
-				dir = 3;;
-				break;
-		}
-
-		EntityPainting paint = new EntityPainting(w.getHandle(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), dir);
-		EnumArt[] array = EnumArt.values();
-		paint.art = array[painting.getArt().getId()];
-		paint.setDirection(paint.direction);
-		if (!(paint).survives()) {
-			paint = null;
-			w.dropItemNaturally(loc, new ItemStack(321, 1));
-			return;
-		}
-		w.getHandle().addEntity(paint);
-
-	}
-
-
-
-
 
 
 
@@ -916,11 +860,69 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	private boolean toReplaceContains(Location location) {      //check if a block is already included in the list of blocks to be immediately replaced
-		return toReplace.get(location) != null;
+		return toReplace.containsKey(location);
+	}
+
+	
+
+	private void replacePaintings(Date time)
+	{
+		Iterator<Painting> iter = paintings.keySet().iterator();
+		log_info("replacing paintings",2);
+		while(iter.hasNext())
+		{
+
+			Painting painting = iter.next();
+			Date date = paintings.get(painting);
+			if(Math.abs(date.getTime() - time.getTime()) < 500 || map.size() == 0);
+			{
+				log_info("painting : right time!",3);
+				replacePainting(painting);
+				iter.remove();
+			}
+		}
+	}
+
+	private void replacePainting(Painting painting) {
+		BlockFace face = painting.getAttachedFace().getOppositeFace();
+		Location loc = painting.getLocation().getBlock().getRelative(face.getOppositeFace()).getLocation();
+		CraftWorld w = (CraftWorld) loc.getWorld();
+
+		loc = CreeperUtils.getAttachingBlock(loc, painting.getArt(), face);
+
+		int dir;
+		switch(face) {
+			case EAST:
+			default:
+				dir = 0;
+				break;
+			case NORTH:
+				dir = 1;
+				break;
+			case WEST:
+				dir = 2;
+				break;
+			case SOUTH:
+				dir = 3;;
+				break;
+		}
+
+		EntityPainting paint = new EntityPainting(w.getHandle(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), dir);
+		EnumArt[] array = EnumArt.values();
+		paint.art = array[painting.getArt().getId()];
+		paint.setDirection(paint.direction);
+		if (!(paint).survives()) {
+			paint = null;
+			w.dropItemNaturally(loc, new ItemStack(321, 1));
+			return;
+		}
+		w.getHandle().addEntity(paint);
+
 	}
 
 
-	public void checkForPaintings(EntityDamageByEntityEvent event)
+
+	public void checkForPaintings(EntityDamageByEntityEvent event, String should)
 	{
 		Entity en = event.getEntity();
 
@@ -929,14 +931,31 @@ public class CreeperHeal extends JavaPlugin {
 			if(event.getDamager() instanceof TNTPrimed)
 			{
 				log_info("painting!",3);
+				Date time = new Date();
+				if(should.equalsIgnoreCase("time"))
+					time = new Date(time.getTime() + 1200000);
 
-				paintings.put((Painting)en, new Date());
+				paintings.put((Painting)en, time);
 				WorldServer w = ((CraftWorld)en.getWorld()).getHandle();
 				w.getEntity(en.getEntityId()).dead = true;
 			}
 		}
 
 	}
+	
+
+	private void replace_paintings()
+    {
+		for(Painting p : paintings.keySet())
+		{
+			replacePainting(p);
+		}
+		paintings.clear();
+    }
+
+
+
+
 
 
 	public WorldConfig loadWorld(World w)
@@ -977,10 +996,10 @@ public class CreeperHeal extends JavaPlugin {
 	{
 		for(WorldConfig w : config.world_config.values()) {
 			long time = getServer().getWorld(w.name).getTime();
-			log_info("time :" + time, 0);
 			if(w.repairTime != -1 && ((Math.abs(w.repairTime - time) < 600) || (Math.abs(Math.abs(w.repairTime - time) - 24000)) < 600)){
 				force_replace(0, w);        
 				force_replace_burnt(0, w);
+				replace_paintings();
 			}
 		}
 	}

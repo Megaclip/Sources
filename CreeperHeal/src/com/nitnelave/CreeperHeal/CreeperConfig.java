@@ -51,6 +51,7 @@ public class CreeperConfig
 	private CreeperHeal plugin;
 	private FileConfiguration configFile;
 	protected Map<String, WorldConfig> world_config = Collections.synchronizedMap(new HashMap<String, WorldConfig>());		//config for each world
+	protected boolean lightweight = false;
 
 	private File yml;
 
@@ -147,6 +148,8 @@ public class CreeperConfig
 		preventBlockFall = getBoolean("prevent-block-fall", true);
 		
 		distanceNear = getInt("distance-near", 20);
+		
+		lightweight = getBoolean("lightweight-mode", false);
 
 		try{
 			tmp_str = configFile.getString("chest-protection", "no").trim().toLowerCase();
@@ -244,6 +247,7 @@ public class CreeperConfig
 		configFile.set("overwrite-blocks", overwrite_blocks);
 		configFile.set("prevent-block-fall", preventBlockFall);
 		configFile.set("distance-near", distanceNear);
+		configFile.set("lightweight-mode", lightweight);
 
 
 
