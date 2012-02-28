@@ -59,7 +59,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected final static ArrayList<Integer> blocks_last = new ArrayList<Integer>(Arrays.asList(6,18,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,81,83,93,94,96,104,105,106,115));  //blocks dependent on others. to put in last
 	private final static ArrayList<Integer> blocks_dependent_down = new ArrayList<Integer>(Arrays.asList(6,26,27,28,31,32,37,38,39,40,55,59,63,64,66,70,71,72,78,93,94,104,105,115));
 	protected final static ArrayList<Integer> blocks_non_solid = new ArrayList<Integer>(Arrays.asList(0,6,8,9,26,27,28,30,31,37,38,39,40, 50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96));   //the player can breathe
-	private final static ArrayList<Integer> empty_blocks = new ArrayList<Integer>(Arrays.asList(0,8,9,10,11));
+	private final static ArrayList<Integer> empty_blocks = new ArrayList<Integer>(Arrays.asList(0,8,9,10,11, 51, 78));
 	protected static HashSet<Byte> transparent_blocks = null;			//blocks that you can aim through while creating a trap.
 	private static final Map<Integer,Integer> blockDrops = new HashMap<Integer,Integer>();	//map to get the drop of a block
 
@@ -342,7 +342,7 @@ public class CreeperHeal extends JavaPlugin {
 
 				switch (block.getType()) 
 				{       
-					case IRON_DOOR :                //in case of a door or bed, only store one block to avoid dupes
+					case IRON_DOOR_BLOCK :                //in case of a door or bed, only store one block to avoid dupes
 					case WOODEN_DOOR :
 						if(block.getData() < 8) 
 						{
@@ -434,7 +434,7 @@ public class CreeperHeal extends JavaPlugin {
 
 		log_info("EXPLOSION!", 3);
 
-
+	
 
 
 
@@ -573,12 +573,12 @@ public class CreeperHeal extends JavaPlugin {
 		int block_id = block.getTypeId();
 		//int tmp_id = 0;
 
-		if(!config.overwrite_blocks && block_id != 0) {        //drop an item on the spot
+		if(!config.overwrite_blocks && !empty_blocks.contains(block_id)) {        //drop an item on the spot
 			if(config.drop_blocks_replaced)
 				dropBlock(blockState);
 			return;
 		}
-		else if(config.overwrite_blocks && block_id != 0 && config.drop_blocks_replaced)
+		else if(config.overwrite_blocks && !empty_blocks.contains(block_id) && config.drop_blocks_replaced)
 		{
 			dropBlock(block.getState());
 		}
