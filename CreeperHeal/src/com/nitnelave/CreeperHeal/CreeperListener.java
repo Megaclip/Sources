@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.EnderDragon;
+import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Fireball;
 import org.bukkit.entity.TNTPrimed;
@@ -16,7 +17,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
-import org.bukkit.event.entity.EndermanPickupEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -68,6 +69,11 @@ public class CreeperListener implements Listener{
 		}
 	}
 
+	
+	
+	
+	
+	
 	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
 		plugin.log_info("block_break!", 3);
@@ -92,11 +98,13 @@ public class CreeperListener implements Listener{
 	}
 
 	@EventHandler(priority = EventPriority.HIGH)
-	public void onEndermanPickup(EndermanPickupEvent event) {//explosion
-		WorldConfig world = getWorld(event.getBlock().getWorld());
-
-		if(world.enderman)
-			event.setCancelled(true);
+	public void onEndermanPickup(EntityChangeBlockEvent event) {//enderman pickup
+		if (event.getEntity() instanceof Enderman)
+		{
+			WorldConfig world = getWorld(event.getBlock().getWorld());
+			if(world.enderman)
+				event.setCancelled(true);
+		}
 	}
 
 

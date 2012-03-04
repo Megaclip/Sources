@@ -23,7 +23,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.ContainerBlock;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.block.NoteBlock;
 import org.bukkit.block.Sign;
@@ -323,10 +323,10 @@ public class CreeperHeal extends JavaPlugin {
 				if(config.replaceProtected && isProtected(block))
 					toReplace.put(block.getLocation(),block.getState());    //replace immediately
 
-				if(block.getState() instanceof ContainerBlock) 
+				if(block.getState() instanceof InventoryHolder) 
 				{        //save the inventory
-					chest_contents.put(block.getLocation(), ((ContainerBlock) block.getState()).getInventory().getContents().clone());
-					((ContainerBlock) block.getState()).getInventory().clear();
+					chest_contents.put(block.getLocation(), ((InventoryHolder) block.getState()).getInventory().getContents().clone());
+					((InventoryHolder) block.getState()).getInventory().clear();
 					if(config.replaceChests)
 						toReplace.put(block.getLocation(),block.getState());
 				}
@@ -337,7 +337,7 @@ public class CreeperHeal extends JavaPlugin {
 					note_block.put(block.getLocation(), ((NoteBlock)(block.getState())).getRawNote());
 
 				else if(block.getState() instanceof CreatureSpawner) 
-					mob_spawner.put(block.getLocation(), ((CreatureSpawner)(block.getState())).getCreatureTypeId());
+					mob_spawner.put(block.getLocation(), ((CreatureSpawner)(block.getState())).getCreatureTypeName());
 
 
 				switch (block.getType()) 
@@ -634,8 +634,8 @@ public class CreeperHeal extends JavaPlugin {
 		}
 
 		CreeperUtils.checkForAscendingRails(blockState, preventUpdate);
-		if(block.getState() instanceof ContainerBlock) {            //if it's a chest, put the inventory back
-			((ContainerBlock) block.getState()).getInventory().setContents( chest_contents.get(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ())));
+		if(block.getState() instanceof InventoryHolder) {            //if it's a chest, put the inventory back
+			((InventoryHolder) block.getState()).getInventory().setContents( chest_contents.get(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ())));
 			chest_contents.remove(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ()));
 		}
 		else if(block.getState() instanceof Sign) {                    //if it's a sign... no I'll let you guess
@@ -652,7 +652,7 @@ public class CreeperHeal extends JavaPlugin {
 			note_block.remove(block.getLocation());
 		}
 		else if(block.getState() instanceof CreatureSpawner) {
-			((CreatureSpawner)block.getState()).setCreatureTypeId( mob_spawner.get(block.getLocation()));
+			((CreatureSpawner)block.getState()).setCreatureTypeByName( mob_spawner.get(block.getLocation()));
 			mob_spawner.remove(block.getLocation());
 		}
 
@@ -760,7 +760,7 @@ public class CreeperHeal extends JavaPlugin {
 
 			w.dropItemNaturally(loc, new ItemStack(type_drop, number_drops, data));
 		}
-		if(blockState instanceof ContainerBlock)        //in case of a chest, drop the contents on the ground as well
+		if(blockState instanceof InventoryHolder)        //in case of a chest, drop the contents on the ground as well
 		{
 			ItemStack[] stacks = chest_contents.get(loc);
 			if(chest_contents!=null)
