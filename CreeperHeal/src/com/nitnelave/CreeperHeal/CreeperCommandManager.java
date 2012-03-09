@@ -1,5 +1,7 @@
 package com.nitnelave.CreeperHeal;
 
+import net.milkbowl.vault.permission.Permission;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -7,19 +9,25 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 public class CreeperCommandManager implements CommandExecutor
 {
 	private CreeperHeal plugin;
 	private final static String green = ChatColor.GREEN.toString(), purple = ChatColor.DARK_PURPLE.toString();
-	//public PermissionHandler permissions = null;    //permission stuff
-
+	private static Permission perms = null;
 
 	public CreeperCommandManager(CreeperHeal instance)
 	{
 		plugin = instance;
-		//setup_permissions();
+		setupPermissions();
 
+	}
+
+	private boolean setupPermissions() {
+		RegisteredServiceProvider<Permission> rsp = plugin.getServer().getServicesManager().getRegistration(Permission.class);
+		perms = rsp.getProvider();
+		return perms != null;
 	}
 
 	@Override
@@ -117,7 +125,7 @@ public class CreeperCommandManager implements CommandExecutor
 	private void sendHelp(CommandSender sender) {		//displays the help according to the permissions of the player
 		sender.sendMessage("CreeperHeal -- Repair explosions damage and make traps");
 		sender.sendMessage("--------------------------------------------");
-		
+
 		boolean admin = true, heal = true, trap = true, healNear = true, healNearSelf = true;
 
 		if(sender instanceof Player){
@@ -127,7 +135,7 @@ public class CreeperCommandManager implements CommandExecutor
 			trap = checkPermissions(player, "trap.create", "trap.*");
 			healNear = heal || checkPermissions(player, "healNear.other");
 			healNearSelf = checkPermissions(player, "healNear.self");
-			
+
 		}
 
 		if(!(admin || heal || trap))
@@ -148,14 +156,14 @@ public class CreeperCommandManager implements CommandExecutor
 			sender.sendMessage(green + "/ch heal (seconds) (world) :" + purple + " Heals all explosions in the last x seconds, or all if x is not specified.");
 			sender.sendMessage(green + "/ch healBurnt (seconds) (world) :" + purple + " Heal all burnt blocks since x seconds, or all if x is not specified.");
 		}
-		
+
 		if(healNear || healNearSelf)
 			sender.sendMessage(green + "/ch healNear" + (healNear?" (player)":"") + " :" + purple + " Heals all explosions around" + (healNear?" the given player":""));
-			
+
 
 		if(trap)
 			sender.sendMessage(green + "/ch trap (create/delete) :" + purple + " creates/removes a trap from the tnt block in front of you.");
-		
+
 
 
 	}
@@ -271,31 +279,38 @@ public class CreeperCommandManager implements CommandExecutor
 	}
 
 	public boolean checkPermissions(Player player, String... nodes) {       //check permission for a given node for a given player
-
-		for(String node : nodes)
+		if(plugin.config.useVault)
 		{
-			if(player.hasPermission("CreeperHeal." + node))
+			for(String node : nodes)
+			{
+				if(perms.has(player, "CreeperHeal." + node))
+				{
+					plugin.log_info(node, 0);
+					return true;
+				}
+			}
+			if(perms.has(player, "CreeperHeal.*"))
 				return true;
+			if(getConfig().opEnforce)
+				return player.isOp();
 		}
-		if(player.hasPermission("CreeperHeal.*"))
-			return true;
-		if(getConfig().opEnforce)
-			return player.isOp();
-
+		else
+		{
+			for(String node : nodes)
+			{
+				if(player.hasPermission("CreeperHeal." + node))
+					return true;
+			}
+			if(player.hasPermission("CreeperHeal.*"))
+				return true;
+			if(getConfig().opEnforce)
+				return player.isOp();
+		}
 		return false;
 
 	}
 
-	/*public void setup_permissions() {        //permissions stuff
-
-		Plugin test = plugin.getServer().getPluginManager().getPlugin("Permissions");
-
-		if(permissions == null) {
-			if(test != null) {
-				permissions = ((Permissions)test).getHandler();
-			}
-		}
-	}*/
+	
 
 	private CreeperConfig getConfig()
 	{
@@ -408,7 +423,7 @@ public class CreeperCommandManager implements CommandExecutor
 					player.sendMessage(ChatColor.RED + "This player doesn't exist. /ch healNear <someone>");
 					return;
 				}
-				
+
 			}
 			else
 			{

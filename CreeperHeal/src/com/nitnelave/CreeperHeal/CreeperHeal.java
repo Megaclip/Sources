@@ -23,7 +23,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.block.NoteBlock;
 import org.bukkit.block.Sign;
@@ -190,11 +192,11 @@ public class CreeperHeal extends JavaPlugin {
 
 
 		pm.registerEvents(listener, this);
-		
+
 		if(!(config.lightweight))
 			pm.registerEvents(fancyListener, this);
-	
-		
+
+
 
 		log.info("[CreeperHeal] version "+pdfFile.getVersion()+" by nitnelave is enabled");
 	}
@@ -203,18 +205,18 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	public void scheduleTimeRepairs()
-    {
+	{
 		if(getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
 			public void run() {
 				checkReplaceTime();
 			}}, 200, 1200) == -1)
-			
+
 			log.warning("[CreeperHeal] Impossible to schedule the time-repair task. Time repairs will not work");
 
-    }
+	}
 
 
-	
+
 
 
 
@@ -313,6 +315,8 @@ public class CreeperHeal extends JavaPlugin {
 		for(Block block : list)     //cycle through the blocks declared destroyed
 		{
 			int type_id = block.getTypeId();
+			if (type_id == 0)
+				continue;
 			byte data = block.getData();
 			if((world.restrict_blocks.equalsIgnoreCase("whitelist") && world.block_list.contains(new BlockId(type_id, data))
 					|| (world.restrict_blocks.equalsIgnoreCase("blacklist") && !world.block_list.contains(new BlockId(type_id, data))
@@ -323,12 +327,37 @@ public class CreeperHeal extends JavaPlugin {
 				if(config.replaceProtected && isProtected(block))
 					toReplace.put(block.getLocation(),block.getState());    //replace immediately
 
-				if(block.getState() instanceof InventoryHolder) 
-				{        //save the inventory
-					chest_contents.put(block.getLocation(), ((InventoryHolder) block.getState()).getInventory().getContents().clone());
-					((InventoryHolder) block.getState()).getInventory().clear();
-					if(config.replaceChests)
-						toReplace.put(block.getLocation(),block.getState());
+
+				if(block.getState() instanceof InventoryHolder)         //save the inventory
+				{
+					Inventory inv = ((InventoryHolder) block.getState()).getInventory();
+					CreeperChest d = scanForNeighborChest(block.getState());
+					if(d != null)
+					{
+						Inventory otherInv = d.right?((DoubleChestInventory)inv).getLeftSide():((DoubleChestInventory)inv).getRightSide();
+						Inventory mainInv = d.right?((DoubleChestInventory)inv).getRightSide():((DoubleChestInventory)inv).getLeftSide();
+						chest_contents.put(d.chest.getLocation(), otherInv.getContents());
+						chest_contents.put(block.getLocation(), mainInv.getContents()); 
+
+						if(config.replaceProtected && isProtected(block))
+							toReplace.put(d.chest.getLocation(), d.chest.getState());
+						if(config.replaceChests)
+						{
+							toReplace.put(d.chest.getLocation(), d.chest.getState());    //replace immediately
+							toReplace.put(block.getLocation(),block.getState());    //replace immediately
+						}
+						list_state.add(d.chest.getState());
+						inv.clear();
+						d.chest.setTypeIdAndData(0, (byte)0, false);
+
+					}
+					else
+					{
+						chest_contents.put(block.getLocation(), inv.getContents()); 
+						inv.clear();
+						if(config.replaceChests)
+							toReplace.put(block.getLocation(),block.getState());    //replace immediately
+					}
 				}
 				else if(block.getState() instanceof Sign)                //save the text
 					sign_text.put(block.getLocation(), ((Sign)block.getState()).getLines());
@@ -338,7 +367,6 @@ public class CreeperHeal extends JavaPlugin {
 
 				else if(block.getState() instanceof CreatureSpawner) 
 					mob_spawner.put(block.getLocation(), ((CreatureSpawner)(block.getState())).getCreatureTypeName());
-
 
 				switch (block.getType()) 
 				{       
@@ -434,7 +462,7 @@ public class CreeperHeal extends JavaPlugin {
 
 		log_info("EXPLOSION!", 3);
 
-	
+
 
 
 
@@ -502,23 +530,23 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void force_replace(long since, WorldConfig world) {        //force replacement of all the explosions since x seconds
+	public void force_replace(long since, WorldConfig world)         //force replacement of all the explosions since x seconds
+	{
 		Date now = new Date();
 
 		Iterator<Date> iterator = map.keySet().iterator();
-		while(iterator.hasNext()) {
+		while(iterator.hasNext()) 
+		{
 			Date time = iterator.next();
-			if(new Date(time.getTime() + since).after(now) || since == 0) {        //if the explosion happened since x seconds
-				if(map.get(time).get(0).getWorld().getName().equals( world.getName())) {
-					List<BlockState> list = map.get(time);
-					if(!list.isEmpty())
-					{
-						replace_blocks(map.get(time));
-						log_info("Blocks replaced!", 2);
-						replacePaintings(time);
-					}
+			if(new Date(time.getTime() + since).after(now) || since == 0)         //if the explosion happened since x seconds
+			{
+				List<BlockState> list = map.get(time);
+				if(!list.isEmpty() && list.get(0).getWorld().getName().equals( world.getName())) 
+				{
+					replace_blocks(map.get(time));
+					log_info("Blocks replaced!", 2);
+					replacePaintings(time);
 					iterator.remove();
-
 				}
 			}
 		}
@@ -635,8 +663,23 @@ public class CreeperHeal extends JavaPlugin {
 
 		CreeperUtils.checkForAscendingRails(blockState, preventUpdate);
 		if(block.getState() instanceof InventoryHolder) {            //if it's a chest, put the inventory back
+			CreeperChest d = scanForNeighborChest(block.getState());
+			if(d != null)
+			{
+				Inventory i = ((InventoryHolder) block.getState()).getInventory();
+				ItemStack[] both;
+				if(d.right)
+					both = concat(((DoubleChestInventory)i).getLeftSide().getContents() , chest_contents.get(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ())));
+				else
+					both = concat(chest_contents.get(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ())), ((DoubleChestInventory)i).getRightSide().getContents());
+				i.setContents(both);
+				chest_contents.remove(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ()));
+			}
+			else
+			{
 			((InventoryHolder) block.getState()).getInventory().setContents( chest_contents.get(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ())));
 			chest_contents.remove(new Location(block.getWorld(), block.getX(), block.getY(), block.getZ()));
+			}
 		}
 		else if(block.getState() instanceof Sign) {                    //if it's a sign... no I'll let you guess
 			int k = 0;
@@ -661,6 +704,11 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
+	public static <T> T[] concat(T[] first, T[] second) {
+		  T[] result = Arrays.copyOf(first, first.length + second.length);
+		  System.arraycopy(second, 0, result, first.length, second.length);
+		  return result;
+		}
 
 
 
@@ -863,7 +911,7 @@ public class CreeperHeal extends JavaPlugin {
 		return toReplace.containsKey(location);
 	}
 
-	
+
 
 	private void replacePaintings(Date time)
 	{
@@ -942,16 +990,16 @@ public class CreeperHeal extends JavaPlugin {
 		}
 
 	}
-	
+
 
 	private void replace_paintings()
-    {
+	{
 		for(Painting p : paintings.keySet())
 		{
 			replacePainting(p);
 		}
 		paintings.clear();
-    }
+	}
 
 
 
@@ -968,29 +1016,29 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	public void replaceNear(Player target)
-    {
+	{
 		int k = config.distanceNear;
 		Location playerLoc = target.getLocation();
-	    
-	    	World w = playerLoc.getWorld();
-	    	Iterator<Location> iter = explosionList.keySet().iterator();
-			while (iter.hasNext())
+
+		World w = playerLoc.getWorld();
+		Iterator<Location> iter = explosionList.keySet().iterator();
+		while (iter.hasNext())
+		{
+			Location loc = iter.next();
+			if(loc.getWorld() == w)
 			{
-				Location loc = iter.next();
-				if(loc.getWorld() == w)
+				if(loc.distance(playerLoc) < k)
 				{
-					if(loc.distance(playerLoc) < k)
-					{
-						Date time = explosionList.get(loc);
-						List<BlockState> list = map.get(time);
-						replace_blocks(list);
-						map.remove(time);
-						iter.remove();
-					}
+					Date time = explosionList.get(loc);
+					List<BlockState> list = map.get(time);
+					replace_blocks(list);
+					map.remove(time);
+					iter.remove();
 				}
 			}
-	    
-    }
+		}
+
+	}
 
 	protected void checkReplaceTime()
 	{
@@ -1007,6 +1055,38 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
+	public static CreeperChest scanForNeighborChest(World world, int x, int y, int z, short d) //given a chest, scan for double, return the Chest
+	{
+		Block neighbor;
+		if(d <= 3)
+		{
+			neighbor = world.getBlockAt(x - 1, y, z);
+			if (neighbor.getType().equals(Material.CHEST)) {
+				return new CreeperChest(neighbor, d == 2 ? false : true);
+			}
+			neighbor = world.getBlockAt(x + 1, y, z);
+			if (neighbor.getType().equals(Material.CHEST)) {
+				return new CreeperChest(neighbor, d == 3 ? false : true);
+			}
+		}
+		else
+		{
+			neighbor = world.getBlockAt(x, y, z - 1);
+			if (neighbor.getType().equals(Material.CHEST)) {
+				return new CreeperChest(neighbor, d == 5 ? false : true);
+			}
+			neighbor = world.getBlockAt(x, y, z + 1);
+			if (neighbor.getType().equals(Material.CHEST)) {
+				return new CreeperChest(neighbor, d == 4 ? false : true);
+			}
+		}
+		return null;
+	}
+
+	public static CreeperChest scanForNeighborChest(BlockState block)
+	{
+		return scanForNeighborChest(block.getWorld(), block.getX(), block.getY(), block.getZ(), block.getRawData());
+	}
 
 
 

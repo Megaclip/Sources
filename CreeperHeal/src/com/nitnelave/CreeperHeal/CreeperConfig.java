@@ -52,6 +52,7 @@ public class CreeperConfig
 	private FileConfiguration configFile;
 	protected Map<String, WorldConfig> world_config = Collections.synchronizedMap(new HashMap<String, WorldConfig>());		//config for each world
 	protected boolean lightweight = false;
+	protected boolean useVault = false;
 
 	private File yml;
 
@@ -150,6 +151,8 @@ public class CreeperConfig
 		distanceNear = getInt("distance-near", 20);
 		
 		lightweight = getBoolean("lightweight-mode", false);
+		
+		useVault = getBoolean("use-Vault", false);
 
 		try{
 			tmp_str = configFile.getString("chest-protection", "no").trim().toLowerCase();
@@ -248,7 +251,7 @@ public class CreeperConfig
 		configFile.set("prevent-block-fall", preventBlockFall);
 		configFile.set("distance-near", distanceNear);
 		configFile.set("lightweight-mode", lightweight);
-
+		configFile.set("use-Vault", useVault);
 
 
 		for(WorldConfig w : world_config.values()) {
