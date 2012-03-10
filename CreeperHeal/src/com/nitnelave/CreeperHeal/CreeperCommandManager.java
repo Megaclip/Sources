@@ -20,7 +20,8 @@ public class CreeperCommandManager implements CommandExecutor
 	public CreeperCommandManager(CreeperHeal instance)
 	{
 		plugin = instance;
-		setupPermissions();
+		if(plugin.config.useVault)
+			setupPermissions();
 
 	}
 
@@ -310,7 +311,7 @@ public class CreeperCommandManager implements CommandExecutor
 
 	}
 
-	
+
 
 	private CreeperConfig getConfig()
 	{
