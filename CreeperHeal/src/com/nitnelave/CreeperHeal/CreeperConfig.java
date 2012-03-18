@@ -53,6 +53,8 @@ public class CreeperConfig
 	protected Map<String, WorldConfig> world_config = Collections.synchronizedMap(new HashMap<String, WorldConfig>());		//config for each world
 	protected boolean lightweight = false;
 	protected boolean useVault = false;
+	protected String alias = "ch";
+
 
 	private File yml;
 
@@ -153,6 +155,8 @@ public class CreeperConfig
 		lightweight = getBoolean("lightweight-mode", false);
 		
 		useVault = getBoolean("use-Vault", false);
+		
+		alias = configFile.getString("command-alias", "ch");
 
 		try{
 			tmp_str = configFile.getString("chest-protection", "no").trim().toLowerCase();
@@ -252,6 +256,7 @@ public class CreeperConfig
 		configFile.set("distance-near", distanceNear);
 		configFile.set("lightweight-mode", lightweight);
 		configFile.set("use-Vault", useVault);
+		configFile.set("command-alias", alias);
 
 
 		for(WorldConfig w : world_config.values()) {
