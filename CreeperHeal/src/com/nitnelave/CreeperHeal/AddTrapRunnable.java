@@ -12,12 +12,14 @@ public class AddTrapRunnable implements Runnable{
 	private Date date;
 	private Block block;
 	private CreeperHeal plugin;
+	private Material type;
 	
-	public AddTrapRunnable(Date d, Block b, CreeperHeal p)
+	public AddTrapRunnable(Date d, Block b, CreeperHeal p, Material t)
 	{
 		date = d;
 		block = b;
 		plugin = p;
+		type = t;
 	}
 	
 	
@@ -25,7 +27,7 @@ public class AddTrapRunnable implements Runnable{
 	public void run() {
 		BlockState tmp_state = block.getState();
 
-		block.setType(Material.TNT);                            //set the block to tnt
+		block.setType(type);                            //set the block to tnt
 
 		List<BlockState> list = plugin.map.get(date);
 		list.add(block.getState());                //record it

@@ -33,6 +33,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.command.CommandMap;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.Entity;
+//import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Player;
@@ -66,21 +67,11 @@ public class CreeperHeal extends JavaPlugin {
 	protected final static ArrayList<Integer> blocks_non_solid = new ArrayList<Integer>(Arrays.asList(0,6,8,9,26,27,28,30,31,37,38,39,40, 50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96));   //the player can breathe
 	private final static ArrayList<Integer> empty_blocks = new ArrayList<Integer>(Arrays.asList(0,8,9,10,11, 51, 78));
 	protected static HashSet<Byte> transparent_blocks = null;			//blocks that you can aim through while creating a trap.
-	private static final Map<Integer,Integer> blockDrops = new HashMap<Integer,Integer>();	//map to get the drop of a block
 
 	/**
 	 * Static constructor.
 	 */
 	static {
-		int[] ids = {1,2,3,4,5,6,12,13,14,15,16,17,19,21,22,23,24,25,26,27,28,29,30,31,32,33,35,37,38,39,40,41,42,43,44,45,46,47,48,49,50,
-				53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,80,81,82,83,84,85,86,87,88,89,91,93,94,
-				95,96,97,98,99,100,101,103,104,105,107,108,109,110,111,112,113,114,115,116,117,118,121};
-		int[] drops = {4,3,3,4,5,6,12,13,14,15,263,17,19,351,22,23,24,25,355,27,28,29,30,31,32,33,35,37,38,39,40,41,42,43,44,45,46,47,48,49,
-				50,53,54,331,264,57,58,295,3,61,61,323,324,65,66,67,323,69,70,330,72,331,331,76,76,77,332,80,81,82,338,84,85,86,87,88,348,
-				91,356,356,95,96,4,98,39,40,101,103,361,362,107,108,109,3,111,112,113,114,115,116,117,118,4};
-		for(int i = 0; i< ids.length; i++)
-			blockDrops.put(ids[i], drops[i]);
-
 		Byte[] elements = {0, 6, 8, 9, 10, 11, 18, 20, 26, 27, 28, 30, 31, 32, 37, 38, 39, 40, 44, 50, 51, 55, 59, 63, 65, 66, 68, 69, 70, 72, 75, 76, 77, 78, 83, 93, 94, 96, 101, 102, 104, 105, 106, 111, 115, 117};
 		transparent_blocks = new HashSet<Byte>(Arrays.asList(elements));
 	}
@@ -126,6 +117,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected final Logger log = Logger.getLogger("Minecraft");            //to output messages to the console/log
 	protected CreeperConfig config;
 	protected CreeperCommandManager commandExecutor;
+	private CreeperDrop creeperDrop;
 
 
 
@@ -152,6 +144,8 @@ public class CreeperHeal extends JavaPlugin {
 		CreeperCommand com = new CreeperCommand(aliases, "", "", commandExecutor);
 
 		commandMap.register("_", com);
+
+		creeperDrop = new CreeperDrop(this);
 
 
 
@@ -327,7 +321,7 @@ public class CreeperHeal extends JavaPlugin {
 
 			log_info("explosion at " + block.getX() + ";" + block.getY() + ";" + block.getZ(), 2);
 			if(world.replace_tnt || isTrap(block)) 
-				getServer().getScheduler().scheduleSyncDelayedTask(this, new AddTrapRunnable(now, block,this));
+				getServer().getScheduler().scheduleSyncDelayedTask(this, new AddTrapRunnable(now, block,this, Material.TNT));
 		}
 
 		for(Block block : list)     //cycle through the blocks declared destroyed
@@ -424,7 +418,7 @@ public class CreeperHeal extends JavaPlugin {
 						break;
 					case TNT :      //add the traps triggered to the list of blocks to be replaced
 						if(isTrap(block) || loadWorld(block.getWorld()).replace_tnt)
-							getServer().getScheduler().scheduleSyncDelayedTask(this, new AddTrapRunnable(now, block,this));
+							getServer().getScheduler().scheduleSyncDelayedTask(this, new AddTrapRunnable(now, block,this, Material.TNT));
 						break;
 					case SMOOTH_BRICK :
 					case BRICK_STAIRS :
@@ -446,6 +440,11 @@ public class CreeperHeal extends JavaPlugin {
 
 			}
 		}
+
+		/*if(!config.lightweight)
+		{
+			list_state = detect_dropped_redstone(now, event.getEntity(), list_state);
+		}*/
 
 
 
@@ -485,6 +484,10 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	}
+
+
+
+
 
 
 
@@ -676,7 +679,15 @@ public class CreeperHeal extends JavaPlugin {
 
 			}
 			else         //rest of it, just normal
-				blockState.update(true);
+			{
+				try{
+					blockState.update(true);
+				}
+				catch(NullPointerException e)
+				{
+					log.info(blockState.getType().toString());
+				}
+			}
 		}
 
 		CreeperUtils.checkForAscendingRails(blockState, preventUpdate);
@@ -805,33 +816,21 @@ public class CreeperHeal extends JavaPlugin {
 		config.log_info(msg, level);
 	}
 
-	private void dropBlock(BlockState blockState) {         //drops the resource associated with the given blockState exploded
-		int type_id = blockState.getTypeId();
-		byte data = blockState.getRawData();
+
+	public void dropBlock(BlockState blockState)
+	{
+
 		Location loc = blockState.getBlock().getLocation();
 		World w = loc.getWorld();
-		if(blockDrops.containsKey(type_id)){
-			int type_drop = blockDrops.get(type_id);
-			int number_drops = 1;
-			Random generator = new Random();
-			if(type_id == 21)
-				number_drops = generator.nextInt(5) + 4;
-			else if(type_drop == 331)
-				number_drops = generator.nextInt(2) + 4;
-			else if(type_drop == 337)
-				number_drops = 4;
-			else if(type_drop == 348)
-				number_drops = generator.nextInt(3) + 2;
-			else if(type_id == 99 || type_id == 100)
-				number_drops = generator.nextInt(3);
 
+		ItemStack drop = creeperDrop.getDrop(blockState);
+		if(drop != null)
+			w.dropItemNaturally(loc, drop);
 
-			w.dropItemNaturally(loc, new ItemStack(type_drop, number_drops, data));
-		}
 		if(blockState instanceof InventoryHolder)        //in case of a chest, drop the contents on the ground as well
 		{
 			ItemStack[] stacks = chest_contents.get(loc);
-			if(chest_contents!=null)
+			if(stacks!=null)
 			{
 				for(ItemStack stack : stacks)
 				{
@@ -850,7 +849,6 @@ public class CreeperHeal extends JavaPlugin {
 
 		else if(blockState instanceof CreatureSpawner) 
 			mob_spawner.remove(loc);
-
 	}
 
 
@@ -1109,6 +1107,38 @@ public class CreeperHeal extends JavaPlugin {
 	}
 
 
+
+	/*private List<BlockState> detect_dropped_redstone(Date now,
+			Entity entity, List<BlockState> block_list)
+			{
+		List<Entity> entityList = entity.getNearbyEntities(10, 10, 10);
+
+		for (Entity e : entityList) {
+			if(e instanceof Item)
+			{
+				ItemStack itemStack = ((Item)e).getItemStack();
+				if( itemStack.getType() == Material.REDSTONE && itemStack.getAmount() == 1 && e.getTicksLived() < 10)
+				{
+					Block b = e.getLocation().getBlock();
+					while(b.getType() != Material.AIR)
+					{
+						b = b.getRelative(BlockFace.UP);
+					}
+
+					BlockState blockState = b.getState();
+					blockState.setType(Material.REDSTONE);
+					blockState.setRawData((byte) 0);
+					block_list.add(blockState);
+					//getServer().getScheduler().scheduleSyncDelayedTask(this, new AddTrapRunnable(now, b,this, Material.REDSTONE));
+
+					e.remove();
+				}
+			}
+		}
+
+		return block_list;
+
+			}*/
 
 
 
