@@ -1,6 +1,6 @@
 name: CreeperHeal
 main: com.nitnelave.CreeperHeal.CreeperHeal
-version: 4.11
+version: 4.12
 author: nitnelave
 description: Replaces terrain destroyed by creeper explosions
 softdepend: [Vault]

@@ -67,6 +67,16 @@ prevent-block-fall:
 distance-near:
 (number) The range of action of the healNear command.
 
+use-Vault:
+(true or false) Whether the Vault plugin should be used, to insure a nice compatibility with permission plugins. Set to false if you don't have it, to true if you do
+
+command-alias:
+(whatever) This is the command that will be used as the CreeperHeal main command. YOu can change it from ch if it conflicts with other plugins (for example HeroChat)
+
+lightweight-mode:
+(true or false) If set to true, the gravel/sand won't fall after an explosion, and vines will replace nicely. Set to false to lighten (a bit?) the load on the computer.
+
+
 Per world :  
 ## The "time" settings means that the damage will be repaired at the given time setting. It is not advised to set the time to -1 and have entity set to "time" : it will accumulate in the memory.##
 

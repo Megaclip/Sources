@@ -36,16 +36,16 @@ public class CreeperDrop
 				createNewFile(file);
 			}
 			catch (IOException ex) {
-				plugin.log.warning("[CreeperHeal] Cannot create file "+file.getPath());
+				CreeperHeal.log.warning("[CreeperHeal] Cannot create file "+file.getPath());
 			}
 		}
 		catch (IOException e)
 		{
-			plugin.log.warning("[CreeperHeal] Cannot load file "+file.getPath());
+			CreeperHeal.log.warning("[CreeperHeal] Cannot load file "+file.getPath());
 		}
 		catch (InvalidConfigurationException e)
 		{
-			plugin.log.warning("[CreeperHeal] Invalid configuration file "+file.getPath());
+			CreeperHeal.log.warning("[CreeperHeal] Invalid configuration file "+file.getPath());
 		}
 
 

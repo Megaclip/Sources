@@ -92,7 +92,7 @@ public class FancyListener implements Listener
 	}
 
 	@EventHandler
-	public void onLeavesDecay(LeavesDecayEvent e)
+	synchronized public void onLeavesDecay(LeavesDecayEvent e)
 	{
 		Location leafLoc = e.getBlock().getLocation();
 		World w = leafLoc.getWorld();
