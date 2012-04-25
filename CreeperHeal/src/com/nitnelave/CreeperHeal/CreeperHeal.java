@@ -323,7 +323,7 @@ public class CreeperHeal extends JavaPlugin {
 
 		if(entity instanceof TNTPrimed) 
 		{            //to replace the tnt that just exploded
-			Block block = entity.getLocation().getBlock();
+			Block block = location.getBlock();
 
 			log_info("explosion at " + block.getX() + ";" + block.getY() + ";" + block.getZ(), 2);
 			if(world.replace_tnt || isTrap(block)) 

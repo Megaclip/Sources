@@ -2,8 +2,8 @@ package com.nitnelave.CreeperHeal;
 
 import java.util.List;
 
+import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 public class CreeperHandler
@@ -17,19 +17,19 @@ public class CreeperHandler
 	   plugin = instance;
     }
 	
-	public void recordBlocks(List<Block> list, Entity source)
+	public void recordBlocks(List<Block> list)
 	{
-		plugin.recordBlocks(list, source.getLocation(), source, CreeperUtils.shouldReplace(source, plugin.loadWorld(source.getWorld())));
+		recordBlocks(list, list.get(0).getLocation());
 	}
 	
-	public void recordBlocks(List<Block> list, Entity source, String should)
+	public void recordBlocks(List<Block> list, Location location)
 	{
-		plugin.recordBlocks(list, source.getLocation(), source, should);
+		plugin.recordBlocks(list, location, null, "true");
 	}
 
-	public void recordBlocks(EntityExplodeEvent event, WorldConfig world, String should) 
+	public void recordBlocks(EntityExplodeEvent event) 
 	{
-		plugin.recordBlocks(event, world, should);
+		plugin.recordBlocks(event, plugin.loadWorld(event.getLocation().getWorld()), "true");
 	}
 
 }
