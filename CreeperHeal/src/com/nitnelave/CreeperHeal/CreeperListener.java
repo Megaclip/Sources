@@ -6,12 +6,8 @@ package com.nitnelave.CreeperHeal;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Creeper;
-import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Fireball;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -39,7 +35,7 @@ public class CreeperListener implements Listener{
 
 		if(!event.isCancelled()) {        //if there actually is an explosion
 			Entity entity = event.getEntity();
-			String should = shouldReplace(entity, world);
+			String should = CreeperUtils.shouldReplace(entity, world);
 			if(!should.equalsIgnoreCase("false"))
 				recordBlocks(event, world, should);
 		}
@@ -63,7 +59,7 @@ public class CreeperListener implements Listener{
 			EntityDamageByEntityEvent e = (EntityDamageByEntityEvent)event;
 			Entity entity = e.getDamager();
 			WorldConfig world = getWorld(entity.getWorld());
-			String should = shouldReplace(entity, world);
+			String should = CreeperUtils.shouldReplace(entity, world);
 			if(!should.equalsIgnoreCase("false"))         //if it's a creeper, and creeper explosions are recorded
 				plugin.checkForPaintings(e, should);
 		}
@@ -108,53 +104,7 @@ public class CreeperListener implements Listener{
 	}
 
 
-	private String shouldReplace(Entity entity, WorldConfig world)
-	{
-
-		if(entity != null) {
-
-			if( entity instanceof Creeper)         //if it's a creeper, and creeper explosions are recorded
-			{
-				if(world.replaceAbove)
-				{
-					if(CreeperUtils.isAbove(entity, world.replaceLimit))
-						return world.creepers;
-					return "false";
-				}
-				return world.creepers;
-			}
-			else if(entity instanceof TNTPrimed)                 //tnt -- it checks if it's a trap.
-				if(world.replaceAbove){
-					if(CreeperUtils.isAbove(entity, world.replaceLimit))
-						return world.tnt;
-					return "false";
-				}
-				else
-					return world.tnt;
-
-			else if(entity instanceof Fireball)         //fireballs (shot by ghasts)
-				if(world.replaceAbove){
-					if(CreeperUtils.isAbove(entity, world.replaceLimit))
-						return world.ghast;
-					return "false";
-				}
-				else
-					return world.ghast;
-
-			else if(entity instanceof EnderDragon)
-
-				return world.dragons;
-
-			else if(!(entity instanceof Creeper) && !(entity instanceof TNTPrimed) && !(entity instanceof Fireball) && !(entity instanceof EnderDragon))        //none of it, another custom entity
-
-				return world.magical;
-
-		}
-		else
-			return world.magical;
-
-		return "false";
-	}
+	
 
 
 }

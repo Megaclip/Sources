@@ -1,5 +1,6 @@
 package com.nitnelave.CreeperHeal;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 
@@ -10,8 +11,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.entity.Creeper;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Fireball;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.material.Rails;
 
 public class CreeperUtils
@@ -154,6 +159,59 @@ public class CreeperUtils
 	}
 
 
+	public static <T> T[] concat(T[] first, T[] second) {
+		T[] result = Arrays.copyOf(first, first.length + second.length);
+		System.arraycopy(second, 0, result, first.length, second.length);
+		return result;
+	}
+	
+	public static String shouldReplace(Entity entity, WorldConfig world)
+	{
+
+		if(entity != null) {
+
+			if( entity instanceof Creeper)         //if it's a creeper, and creeper explosions are recorded
+			{
+				if(world.replaceAbove)
+				{
+					if(isAbove(entity, world.replaceLimit))
+						return world.creepers;
+					return "false";
+				}
+				return world.creepers;
+			}
+			else if(entity instanceof TNTPrimed)                 //tnt -- it checks if it's a trap.
+				if(world.replaceAbove){
+					if(isAbove(entity, world.replaceLimit))
+						return world.tnt;
+					return "false";
+				}
+				else
+					return world.tnt;
+
+			else if(entity instanceof Fireball)         //fireballs (shot by ghasts)
+				if(world.replaceAbove){
+					if(isAbove(entity, world.replaceLimit))
+						return world.ghast;
+					return "false";
+				}
+				else
+					return world.ghast;
+
+			else if(entity instanceof EnderDragon)
+
+				return world.dragons;
+
+			else if(!(entity instanceof Creeper) && !(entity instanceof TNTPrimed) && !(entity instanceof Fireball) && !(entity instanceof EnderDragon))        //none of it, another custom entity
+
+				return world.magical;
+
+		}
+		else
+			return world.magical;
+
+		return "false";
+	}
 
 
 }

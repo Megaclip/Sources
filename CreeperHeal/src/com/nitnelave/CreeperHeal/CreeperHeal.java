@@ -119,6 +119,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected CreeperConfig config;
 	protected CreeperCommandManager commandExecutor;
 	private CreeperDrop creeperDrop;
+	private CreeperHandler handler;
 
 
 
@@ -148,7 +149,7 @@ public class CreeperHeal extends JavaPlugin {
 
 		creeperDrop = new CreeperDrop(this);
 
-
+		handler = new CreeperHandler(this);
 
 		/*
 		 * Recurrent tasks
@@ -217,7 +218,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void scheduleTimeRepairs()
+	protected void scheduleTimeRepairs()
 	{
 		if(getServer().getScheduler().scheduleAsyncRepeatingTask(this, new Runnable() {
 			public void run() {
@@ -294,30 +295,34 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
+	
+	protected void recordBlocks(EntityExplodeEvent event, WorldConfig world, String should) 
+	{
+		event.setYield(0);
+		recordBlocks(event.blockList(), event.getLocation(), event.getEntity(), should);
+	}
 
+	
 
-
-
-
-	public void recordBlocks(EntityExplodeEvent event, WorldConfig world, String should) {        //record the list of blocks of an explosion, from bottom to top
+	
+	protected void recordBlocks(List<Block> list, Location location, Entity entity, String should)
+	{
+        //record the list of blocks of an explosion, from bottom to top
 		Date now = new Date();
 		while(map.containsKey(now))
 			now = new Date(now.getTime() + 1);
-		event.setYield(0);
-		List<Block> list = event.blockList();            //the list declared by the explosion
 		List<BlockState> list_state = new ArrayList<BlockState>();        //the list of blockstate we'll be keeping afterward
-
-		explosionList.put(event.getLocation(), now);
+		WorldConfig world = loadWorld(location.getWorld());
+		explosionList.put(location, now);
 
 		if(maHandler != null) 
 		{
-			if (maHandler.inRegion(event.getLocation())) 
+			if (maHandler.inRegion(location)) 
 				return;		//Explosion inside a mob arena
 		}
 
-		if(event.getEntity() instanceof TNTPrimed) 
+		if(entity instanceof TNTPrimed) 
 		{            //to replace the tnt that just exploded
-			Entity entity = event.getEntity();
 			Block block = entity.getLocation().getBlock();
 
 			log_info("explosion at " + block.getX() + ";" + block.getY() + ";" + block.getZ(), 2);
@@ -454,11 +459,6 @@ public class CreeperHeal extends JavaPlugin {
 			}
 		}
 
-		/*if(!config.lightweight)
-		{
-			list_state = detect_dropped_redstone(now, event.getEntity(), list_state);
-		}*/
-
 
 
 		getServer().getScheduler().scheduleSyncDelayedTask(this,new Runnable(){public void run() {replaceProtected();}});       //immediately replace the blocks marked for immediate replacement
@@ -496,6 +496,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
+	
 	}
 
 
@@ -504,7 +505,9 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void check_replace(boolean block_per_block) {        //check to see if any block has to be replaced
+
+
+	private void check_replace(boolean block_per_block) {        //check to see if any block has to be replaced
 		Date now = new Date();
 
 		log_info("Replacing blocks...", 3);
@@ -548,7 +551,7 @@ public class CreeperHeal extends JavaPlugin {
 
 	}
 
-	public void check_player_one_block(Location loc) {      //get the living entities around to save thoses who are suffocating
+	protected void check_player_one_block(Location loc) {      //get the living entities around to save thoses who are suffocating
 		if(config.teleport_on_suffocate) {
 			Entity[] play_list = loc.getBlock().getChunk().getEntities();
 			if(play_list.length!=0) {
@@ -564,7 +567,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void force_replace(long since, WorldConfig world)         //force replacement of all the explosions since x seconds
+	protected void force_replace(long since, WorldConfig world)         //force replacement of all the explosions since x seconds
 	{
 		Date now = new Date();
 
@@ -629,7 +632,7 @@ public class CreeperHeal extends JavaPlugin {
 	}
 
 
-	public void block_state_replace(BlockState blockState)
+	protected void block_state_replace(BlockState blockState)
 	{
 		Block block = blockState.getBlock();
 		int block_id = block.getTypeId();
@@ -715,9 +718,9 @@ public class CreeperHeal extends JavaPlugin {
 					{
 						ItemStack[] newInv = chest_contents.get(block.getLocation());
 						if(d.right)
-							both = concat(otherInv , newInv);
+							both = CreeperUtils.concat(otherInv , newInv);
 						else
-							both = concat(newInv, otherInv);
+							both = CreeperUtils.concat(newInv, otherInv);
 						i.setContents(both);
 					}
 					chest_contents.remove(block.getLocation());
@@ -763,11 +766,6 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public static <T> T[] concat(T[] first, T[] second) {
-		T[] result = Arrays.copyOf(first, first.length + second.length);
-		System.arraycopy(second, 0, result, first.length, second.length);
-		return result;
-	}
 
 
 
@@ -785,7 +783,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void record_burn(Block block) {            //record a burnt block
+	protected void record_burn(Block block) {            //record a burnt block
 		if(block.getType() != Material.TNT) {        //unless it's TNT triggered by fire
 			Date now = new Date();
 			map_burn.put(now, block.getState());
@@ -806,7 +804,7 @@ public class CreeperHeal extends JavaPlugin {
 		}
 	}
 
-	public void replace_burnt() {        //checks for burnt blocks to replace, with an override for onDisable()
+	private void replace_burnt() {        //checks for burnt blocks to replace, with an override for onDisable()
 		Date[] keyset = map_burn.keySet().toArray(new Date[map_burn.keySet().size()]);
 
 		Date now = new Date();
@@ -819,7 +817,7 @@ public class CreeperHeal extends JavaPlugin {
 		}
 	}
 
-	public void force_replace_burnt(long since, WorldConfig world_config) {     //replace all of the burnt blocks since "since"
+	protected void force_replace_burnt(long since, WorldConfig world_config) {     //replace all of the burnt blocks since "since"
 		boolean force = false;
 		if(since == 0)
 			force = true;
@@ -840,12 +838,12 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void log_info(String msg, int level) {        //logs a message, according to the log_level
+	protected void log_info(String msg, int level) {        //logs a message, according to the log_level
 		config.log_info(msg, level);
 	}
 
 
-	public void dropBlock(BlockState blockState)
+	private void dropBlock(BlockState blockState)
 	{
 
 		Location loc = blockState.getBlock().getLocation();
@@ -881,21 +879,21 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public boolean isTrap(Location loc) {
+	protected boolean isTrap(Location loc) {
 		return (getTrapOwner(loc) != null);
 	}
 
-	public boolean isTrap(Block block) {
+	protected boolean isTrap(Block block) {
 		return (getTrapOwner(block) != null);
 	}
 
-	public boolean isTrap(Entity en){
+	protected boolean isTrap(Entity en){
 		return (getTrapOwner(en.getLocation().getBlock().getLocation()) != null);     //if the name of the owner of the trap is null, then there is no trap!
 	}
 
 
 
-	public Location stringToLoc(String str) {       //opposite
+	protected Location stringToLoc(String str) {       //opposite
 		String[] args = str.split(";");
 		World w = getServer().getWorld(args[0]);
 		int x = Integer.parseInt(args[1]);
@@ -904,34 +902,34 @@ public class CreeperHeal extends JavaPlugin {
 		return new Location(w, x, y, z);
 	}
 
-	public String getTrapOwner(Location loc) {
+	protected String getTrapOwner(Location loc) {
 		return trap_location.get(CreeperUtils.locToString(loc));
 	}
 
-	public String getTrapOwner(Block block) {
+	protected String getTrapOwner(Block block) {
 		return trap_location.get(CreeperUtils.locToString(block));
 	}
 
 
-	public void createTrap(Location loc, String name)
+	protected void createTrap(Location loc, String name)
 	{
 		trap_location.put(CreeperUtils.locToString(loc), name);
 	}
 
-	public boolean deleteTrap(Player player)
+	protected boolean deleteTrap(Player player)
 	{
 		return commandExecutor.deleteTrap(player);
 	}
 
 
 
-	public void deleteTrap(Location loc){
+	protected void deleteTrap(Location loc){
 		trap_location.remove(CreeperUtils.locToString(loc));
 	}
 
 
 
-	private boolean isProtected(Block block){       //is the block protected?
+	protected boolean isProtected(Block block){       //is the block protected?
 		if(lwc!=null){                      //lwc gets the priority. BECAUSE!
 			return (lwc.findProtection(block)!=null);
 		}
@@ -1016,7 +1014,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void checkForPaintings(EntityDamageByEntityEvent event, String should)
+	protected void checkForPaintings(EntityDamageByEntityEvent event, String should)
 	{
 		Entity en = event.getEntity();
 
@@ -1038,7 +1036,7 @@ public class CreeperHeal extends JavaPlugin {
 	}
 
 
-	private void replace_paintings()
+	protected void replace_paintings()
 	{
 		for(Painting p : paintings.keySet())
 		{
@@ -1052,7 +1050,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public WorldConfig loadWorld(World w)
+	protected WorldConfig loadWorld(World w)
 	{
 		return config.loadWorld(w);
 	}
@@ -1061,7 +1059,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public void replaceNear(Player target)
+	protected void replaceNear(Player target)
 	{
 		int k = config.distanceNear;
 		Location playerLoc = target.getLocation();
@@ -1101,7 +1099,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	public static CreeperChest scanForNeighborChest(World world, int x, int y, int z, short d) //given a chest, scan for double, return the Chest
+	protected static CreeperChest scanForNeighborChest(World world, int x, int y, int z, short d) //given a chest, scan for double, return the Chest
 	{
 		Block neighbor;
 		if(d <= 3)
@@ -1156,14 +1154,17 @@ public class CreeperHeal extends JavaPlugin {
 	}
 
 	
-	public static CreeperChest scanForNeighborChest(BlockState block)
+	protected static CreeperChest scanForNeighborChest(BlockState block)
 	{
 		return scanForNeighborChest(block.getWorld(), block.getX(), block.getY(), block.getZ(), block.getRawData());
 	}
 
 
 
-	
+	public CreeperHandler getHandler()
+	{
+		return handler;
+	}
 
 
 
