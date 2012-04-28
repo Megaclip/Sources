@@ -42,7 +42,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Attachable;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -63,8 +62,9 @@ public class CreeperHeal extends JavaPlugin {
 
 
 	protected final static ArrayList<Integer> blocks_physics = new ArrayList<Integer>(Arrays.asList(12,13,88));                        //sand gravel, soulsand fall
-	protected final static ArrayList<Integer> blocks_last = new ArrayList<Integer>(Arrays.asList(6,18,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,81,83,93,94,96,104,105,106,115));  //blocks dependent on others. to put in last
 	private final static ArrayList<Integer> blocks_dependent_down = new ArrayList<Integer>(Arrays.asList(6,26,27,28,31,32,37,38,39,40,55,59,63,64,66,70,71,72,78,93,94,104,105,115));
+	protected final static ArrayList<Integer> blocks_dependent = new ArrayList<Integer>(Arrays.asList(6,26,27,28,31,32,37,38,39,40,50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,93,94,96,104,105,106,115));
+	//private final static ArrayList<Integer> blocks_dependent_side = new ArrayList<Integer>(Arrays.asList(50, 65, 68, 69, 75, 76, 77, 96, 106));
 	protected final static ArrayList<Integer> blocks_non_solid = new ArrayList<Integer>(Arrays.asList(0,6,8,9,26,27,28,30,31,37,38,39,40, 50,55,59,63,64,65,66,68,69,70,71,72,75,76,77,78,83,90,93,94,96));   //the player can breathe
 	private final static ArrayList<Integer> empty_blocks = new ArrayList<Integer>(Arrays.asList(0,8,9,10,11, 51, 78));
 	protected static HashSet<Byte> transparent_blocks = null;			//blocks that you can aim through while creating a trap.
@@ -90,7 +90,7 @@ public class CreeperHeal extends JavaPlugin {
 	 */
 
 	protected Map<Date, List<BlockState>> map = Collections.synchronizedMap(new HashMap<Date, List<BlockState>>());        //hashmap storing the list of blocks destroyed in an explosion
-	private Map<Date, BlockState> map_burn = Collections.synchronizedMap(new HashMap<Date, BlockState>());                //same for burnt blocks
+	//private Map<Date, BlockState> map_burn = Collections.synchronizedMap(new HashMap<Date, BlockState>());                //same for burnt blocks
 	private Map<Location, ItemStack[]> chest_contents = Collections.synchronizedMap(new HashMap<Location, ItemStack[]>());         //stores the chests contents
 	private Map<Location, String[]> sign_text = Collections.synchronizedMap(new HashMap<Location, String[]>());                    //stores the signs text
 	private Map<Location, Byte> note_block = Collections.synchronizedMap(new HashMap<Location, Byte>());								//stores the note blocks' notes
@@ -102,7 +102,7 @@ public class CreeperHeal extends JavaPlugin {
 	protected Map<Location, Date> explosionList = Collections.synchronizedMap(new HashMap<Location, Date>());
 	protected Map<Location, Date> fireList = Collections.synchronizedMap(new HashMap<Location, Date>());
 	protected Map<Location, Date> preventBlockFall = Collections.synchronizedMap(new HashMap<Location, Date>());
-
+	protected List<CreeperBurntBlock> burnt_list = Collections.synchronizedList(new ArrayList<CreeperBurntBlock>());
 
 
 	/**
@@ -295,19 +295,19 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	
+
 	protected void recordBlocks(EntityExplodeEvent event, WorldConfig world, String should) 
 	{
 		event.setYield(0);
 		recordBlocks(event.blockList(), event.getLocation(), event.getEntity(), should);
 	}
 
-	
 
-	
+
+
 	protected void recordBlocks(List<Block> list, Location location, Entity entity, String should)
 	{
-        //record the list of blocks of an explosion, from bottom to top
+		//record the list of blocks of an explosion, from bottom to top
 		Date now = new Date();
 		while(map.containsKey(now))
 			now = new Date(now.getTime() + 1);
@@ -496,7 +496,7 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-	
+
 	}
 
 
@@ -650,9 +650,8 @@ public class CreeperHeal extends JavaPlugin {
 
 
 
-		if(blocks_dependent_down.contains(blockState.getTypeId()) && blockState.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR)
-			delay_replacement(blockState);
-		else if(blockState instanceof Attachable && blockState.getBlock().getRelative(((Attachable) blockState).getAttachedFace()).getType() == Material.AIR)
+
+		if(blocks_dependent.contains(blockState) && blockState.getBlock().getRelative(getAttachingFace(blockState).getOppositeFace()).getType() == Material.AIR)
 			delay_replacement(blockState);
 		else
 		{
@@ -699,7 +698,7 @@ public class CreeperHeal extends JavaPlugin {
 		}
 
 		CreeperUtils.checkForAscendingRails(blockState, preventUpdate);
-		
+
 		if(blockState instanceof InventoryHolder) {            //if it's a chest, put the inventory back
 			if(block.getState() instanceof Chest)
 			{
@@ -786,33 +785,130 @@ public class CreeperHeal extends JavaPlugin {
 	protected void record_burn(Block block) {            //record a burnt block
 		if(block.getType() != Material.TNT) {        //unless it's TNT triggered by fire
 			Date now = new Date();
-			map_burn.put(now, block.getState());
+			burnt_list.add(new CreeperBurntBlock(now, block.getState()));
 			fireList.put(block.getLocation(), now);
-			BlockState block_up = block.getRelative(BlockFace.UP).getState();
-			if(blocks_last.contains(block_up.getTypeId())) {        //the block above is a dependent block, store it, but one interval after
-				map_burn.put(new Date(now.getTime() + config.burn_interval*1000), block_up);
+			BlockFace[] faces = {BlockFace.UP, BlockFace.EAST, BlockFace.WEST, BlockFace.NORTH, BlockFace.SOUTH};
+			for(BlockFace face : faces)
+			{
+				recordAttachedBurntBlocks(block, now, face);
+			}
+
+		}
+	}
+
+	private void recordAttachedBurntBlocks(Block block, Date now, BlockFace face){
+		BlockState block_up = block.getRelative(face).getState();
+		if(blocks_dependent.contains(block_up.getTypeId())) {        //the block above is a dependent block, store it, but one interval after
+			if(getAttachingFace(block_up) == rotateCClockWise(face))
+			{
+				burnt_list.add(new CreeperBurntBlock(new Date(now.getTime() + 100), block_up));
 				if(block_up instanceof Sign) {                //as a side note, chests don't burn, but signs are dependent
 					sign_text.put(new Location(block_up.getWorld(), block_up.getX(), block_up.getY(), block_up.getZ()), ((Sign)block_up).getLines());
 				}
-				try{
-					block_up.getBlock().setTypeIdAndData(0, (byte)0, false);
-				}
-				catch(IndexOutOfBoundsException e) {
-					log_info(e.getLocalizedMessage(), 1);
-				}
+				block_up.getBlock().setTypeIdAndData(0, (byte)0, false);
+
 			}
 		}
 	}
 
+	private BlockFace rotateCClockWise(BlockFace face)
+	{
+		if(face == BlockFace.EAST)
+			return BlockFace.NORTH;
+		else if(face == BlockFace.NORTH)
+			return BlockFace.WEST;
+		else if(face == BlockFace.WEST)
+			return BlockFace.SOUTH;
+		else if(face == BlockFace.SOUTH)
+			return BlockFace.EAST;
+		else
+			return face;
+	}
+
+
+
+
+	private BlockFace getAttachingFace(BlockState block_up)
+	{
+		if(blocks_dependent_down.contains(block_up.getTypeId()))
+			return BlockFace.DOWN;
+		else
+			switch(block_up.getTypeId()){
+				case 50:
+				case 75:
+				case 76:
+					switch(block_up.getRawData()){
+						case 1: return BlockFace.EAST;
+						case 2: return BlockFace.WEST;
+						case 3: return BlockFace.SOUTH;
+						case 4: return BlockFace.NORTH;
+						default: return BlockFace.UP;
+					}
+				case 65:
+				case 68:
+					switch(block_up.getRawData()){
+						case 5: return BlockFace.EAST;
+						case 4: return BlockFace.WEST;
+						case 3: return BlockFace.SOUTH;
+						case 2: return BlockFace.NORTH;
+						default: return BlockFace.UP;
+					}
+				case 69:
+				case 77:
+					switch(block_up.getRawData()> 8?block_up.getRawData() - 8:block_up.getRawData()){
+						case 1: return BlockFace.EAST;
+						case 2: return BlockFace.WEST;
+						case 3: return BlockFace.SOUTH;
+						case 4: return BlockFace.NORTH;
+						default: return BlockFace.UP;
+					}
+				case 96:
+					switch(block_up.getRawData()> 4?block_up.getRawData() - 4:block_up.getRawData()){
+						case 4: return BlockFace.EAST;
+						case 3: return BlockFace.WEST;
+						case 2: return BlockFace.SOUTH;
+						case 1: return BlockFace.NORTH;
+						default: return BlockFace.UP;
+					}
+				default:
+
+					return BlockFace.SELF;
+			}
+	}
+
+
+
+
+
+
 	private void replace_burnt() {        //checks for burnt blocks to replace, with an override for onDisable()
-		Date[] keyset = map_burn.keySet().toArray(new Date[map_burn.keySet().size()]);
 
 		Date now = new Date();
-		for(Date time : keyset) {
-			if((new Date(time.getTime() + config.burn_interval * 1000).before(now))) {        //if enough time went by
-				BlockState block = map_burn.get(time);
-				replace_blocks(block);
-				map_burn.remove(time);
+		synchronized (burnt_list) {
+			Iterator<CreeperBurntBlock> iter = burnt_list.iterator();
+			while (iter.hasNext()) {
+				CreeperBurntBlock cBlock = iter.next();
+				Date time = cBlock.getTime();
+				if((new Date(time.getTime() + config.burn_interval * 1000).before(now))) {        //if enough time went by
+					BlockState block = cBlock.getBlockState();
+					if(blocks_dependent.contains(block.getTypeId()))
+					{
+						Block support = block.getBlock().getRelative(getAttachingFace(block).getOppositeFace());
+						if(support.getTypeId() == 0 || support.getTypeId() == 51)
+							cBlock.addTime(config.burn_interval * 1000);
+						else
+						{
+							replace_blocks(block);
+							iter.remove();
+						}
+
+					}
+					else
+					{
+						replace_blocks(block);
+						iter.remove();
+					}
+				}
 			}
 		}
 	}
@@ -823,15 +919,17 @@ public class CreeperHeal extends JavaPlugin {
 			force = true;
 		World world = getServer().getWorld(world_config.getName());
 
-		Date[] keyset = map_burn.keySet().toArray(new Date[map_burn.keySet().size()]);
-
-		Date now = new Date();
-		for(Date time : keyset) {
-			BlockState block = map_burn.get(time);
-			if(block.getWorld() == world && (new Date(time.getTime() + since * 1000).after(now) || force)) {        //if enough time went by
-
-				replace_blocks(block);        //replace the non-dependent block
-				map_burn.remove(time);
+		synchronized (burnt_list){
+			Date now = new Date();
+			Iterator<CreeperBurntBlock> iter = burnt_list.iterator();
+			while (iter.hasNext()) {
+				CreeperBurntBlock cBlock = iter.next();
+				Date time = cBlock.getTime();
+				BlockState block = cBlock.getBlockState();
+				if(block.getWorld() == world && (new Date(time.getTime() + since * 1000).after(now) || force)) {        //if enough time went by
+					replace_blocks(block);        //replace the non-dependent block
+					iter.remove();
+				}
 			}
 		}
 	}
@@ -1020,17 +1118,17 @@ public class CreeperHeal extends JavaPlugin {
 
 		if(en instanceof Painting)
 		{
-			if(event.getDamager() instanceof TNTPrimed)
-			{
-				log_info("painting!",3);
-				Date time = new Date();
-				if(should.equalsIgnoreCase("time"))
-					time = new Date(time.getTime() + 1200000);
+			log_info("painting detected", 1);
 
-				paintings.put((Painting)en, time);
-				WorldServer w = ((CraftWorld)en.getWorld()).getHandle();
-				w.getEntity(en.getEntityId()).dead = true;
-			}
+			log_info("painting!",3);
+			Date time = new Date();
+			if(should.equalsIgnoreCase("time"))
+				time = new Date(time.getTime() + 1200000);
+
+			paintings.put((Painting)en, time);
+			WorldServer w = ((CraftWorld)en.getWorld()).getHandle();
+			w.getEntity(en.getEntityId()).dead = true;
+
 		}
 
 	}
@@ -1149,11 +1247,11 @@ public class CreeperHeal extends JavaPlugin {
 		BlockState chest = state.getBlock().getRelative(i, 0, j).getState();
 		if(chest instanceof Chest)
 			return (state.getRawData() == 2 || state.getRawData() == 5?right:!right)?((DoubleChestInventory) ((Chest) chest).getInventory()).getRightSide().getContents():((DoubleChestInventory) ((InventoryHolder) chest).getInventory()).getLeftSide().getContents();
-		log.warning("[CreeperHeal] Debug : chest inventory error? " + state.getRawData() + " ; " + (state.getX() + i) + " ; " + (state.getZ() + j) + "; orientation : " + state.getRawData() + "right : " + right);
-		return null;
+			log.warning("[CreeperHeal] Debug : chest inventory error? " + state.getRawData() + " ; " + (state.getX() + i) + " ; " + (state.getZ() + j) + "; orientation : " + state.getRawData() + "right : " + right);
+			return null;
 	}
 
-	
+
 	protected static CreeperChest scanForNeighborChest(BlockState block)
 	{
 		return scanForNeighborChest(block.getWorld(), block.getX(), block.getY(), block.getZ(), block.getRawData());

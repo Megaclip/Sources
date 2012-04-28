@@ -6,8 +6,12 @@ package com.nitnelave.CreeperHeal;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Creeper;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Fireball;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -58,18 +62,21 @@ public class CreeperListener implements Listener{
 		{
 			EntityDamageByEntityEvent e = (EntityDamageByEntityEvent)event;
 			Entity entity = e.getDamager();
-			WorldConfig world = getWorld(entity.getWorld());
-			String should = CreeperUtils.shouldReplace(entity, world);
-			if(!should.equalsIgnoreCase("false"))         //if it's a creeper, and creeper explosions are recorded
-				plugin.checkForPaintings(e, should);
+			if(entity instanceof Creeper || entity instanceof TNTPrimed || entity instanceof Fireball || entity instanceof EnderDragon)
+			{
+				WorldConfig world = getWorld(entity.getWorld());
+				String should = CreeperUtils.shouldReplace(entity, world);
+				if(!should.equalsIgnoreCase("false"))         //if it's a creeper, and creeper explosions are recorded
+					plugin.checkForPaintings(e, should);
+			}
 		}
 	}
 
-	
-	
-	
-	
-	
+
+
+
+
+
 	@EventHandler
 	public void onBlockBreak(BlockBreakEvent event) {
 		plugin.log_info("block_break!", 3);
@@ -104,7 +111,7 @@ public class CreeperListener implements Listener{
 	}
 
 
-	
+
 
 
 }
