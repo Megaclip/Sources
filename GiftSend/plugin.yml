@@ -1,7 +1,8 @@
 name: GiftSend
 main: com.GiftSend.GiftSend.GiftSend
-version: 0.7
+version: 0.8.1
 author: nitnelave
+softdepend: [Vault]
 commands:
     send:
         description: Send items to other players. Defaults to item in hand.

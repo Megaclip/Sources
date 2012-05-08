@@ -11,18 +11,20 @@ import java.io.PrintWriter;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerListener;
 import org.bukkit.inventory.ItemStack;
 
 
-public class SGPlayerListener extends PlayerListener {
+public class SGPlayerListener implements Listener {
 	public static GiftSend plugin;
 
 	public SGPlayerListener(GiftSend instance) {
 		plugin = instance;
 	}
-
+	
+	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		File offlineFile = new File(plugin.getDataFolder()+"/offline.txt");
 		File tempFile = new File(plugin.getDataFolder() + "/offline.tmp");
